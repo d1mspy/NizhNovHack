@@ -3,6 +3,7 @@ from uuid import UUID
 from repositories.db.user_repository import user_repository
 from schemas.schemas import UserDTO
 from ai_services.career import ai_service
+from typing import List
 from utils.concatination import user_to_single_line
 
 class UserService:
@@ -11,6 +12,9 @@ class UserService:
         
     async def put_user(self, user: UserDTO) -> UUID:
         return await self.repository.put_user(user)
+    
+    async def get_all_users(self) -> List[UserDTO]:
+        return await self.repository.get_all_users()
     
     async def update_user_info(self, user: UserDTO, id: str) -> UserDTO:
         return await self.repository.update_user_info(

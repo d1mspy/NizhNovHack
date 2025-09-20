@@ -130,5 +130,14 @@ class UserRepository:
 
         return await self._execute_with_session(_get)
     
+    async def get_all_users(self) -> List[UserDTO]:
+        async def _get_all(session:AsyncSession) -> List[UserDTO]:
+            stmt = select(User)
+            data = await session.execute(stmt)
+            users = data.scalars().all()
+            return [UserDTO.model_validate(user) for user in users]
+        return await self._execute_with_session(_get_all)
+        
+    
     
 user_repository = UserRepository()
