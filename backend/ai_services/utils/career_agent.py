@@ -496,6 +496,81 @@ class CareerAgent:
         """
         return await self.run_agent_async(json_path)
     
+    async def analyze_messages(self, messages: List[Dict[str, str]]) -> str:
+        """
+        Анализирует готовый список сообщений и возвращает рекомендации.
+        
+        Args:
+            messages: Список сообщений в формате [{"role": "user", "message": "..."}]
+            
+        Returns:
+            Финальное рекомендательное сообщение с курсами, статьями и т.д.
+            
+        Example:
+            >>> messages = [
+            ...     {"role": "user", "message": "Хочу стать Python разработчиком"},
+            ...     {"role": "assistant", "message": "Расскажите о вашем опыте"},
+            ...     {"role": "user", "message": "Изучаю Python 6 месяцев"}
+            ... ]
+            >>> recommendations = await agent.analyze_messages(messages)
+            >>> print(recommendations)
+        """
+        # 1. Форматируем сообщения в текст диалога
+        dialog_text = self.format_conversation(messages)
+        
+        # 2. Анализируем диалог и извлекаем профиль
+        profile = await self.analyze_dialog(dialog_text)
+        if not profile or "missing_skills" not in profile:
+            raise ValueError("Не удалось извлечь профиль или недостающие навыки")
+        
+        missing_skills = profile["missing_skills"]
+        
+        # 3. Поиск ресурсов по недостающим навыкам
+        resources_by_skill = {}
+        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+            tasks = [self.find_resources_for_skill(skill, session) for skill in missing_skills]
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            for skill, result in zip(missing_skills, results):
+                if isinstance(result, Exception):
+                    resources_by_skill[skill] = {
+                        "courses": [], "articles": [], "vacancies": [], 
+                        "projects": [], "competitions": []
+                    }
+                else:
+                    resources_by_skill[skill] = result
+        
+        # 4. Объединение результатов по всем навыкам
+        combined_recommendations = {
+            "courses": [], "articles": [], "vacancies": [], 
+            "projects": [], "competitions": []
+        }
+        
+        for skill, res in resources_by_skill.items():
+            for course in res.get("courses", []):
+                course["skill"] = skill
+                combined_recommendations["courses"].append(course)
+            
+            for article in res.get("articles", []):
+                article["skill"] = skill
+                combined_recommendations["articles"].append(article)
+            
+            for vac in res.get("vacancies", []):
+                vac["skill"] = skill
+                combined_recommendations["vacancies"].append(vac)
+            
+            for proj in res.get("projects", []):
+                proj["skill"] = skill
+                combined_recommendations["projects"].append(proj)
+            
+            for comp in res.get("competitions", []):
+                comp["skill"] = skill
+                combined_recommendations["competitions"].append(comp)
+        
+        # 5. Генерация финального сообщения
+        final_message = await self.generate_final_message(profile, combined_recommendations)
+        return final_message
+    
     async def run_agent_async(self, json_path: str) -> str:
         """
         Основной метод для запуска полного пайплайна агента.
