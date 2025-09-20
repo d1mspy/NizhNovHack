@@ -1,45 +1,67 @@
 <script lang="ts">
-  // ----- типы -----
   type Vacancy = { id: string; name: string };
+  type Matching = { score: number; position: string; decision?: string; reasoning_report?: string };
   type Candidate = { id: string; position: string; score: number };
 
-  // ----- мок-данные -----
-  let vacancies: Vacancy[] = [
-    { id: 'v1', name: 'Data Engineer' },
-    { id: 'v2', name: 'Frontend Developer' },
-    { id: 'v3', name: 'ML Engineer' },
-    { id: 'v4', name: 'QA Automation' },
-    { id: 'v5', name: 'DevOps' },
-    { id: 'v6', name: 'Product Analyst' },
-    { id: 'v7', name: 'Backend Go' },
-  ];
-
-  let selected: Set<string> = new Set();          // выбранные вакансии
-  let candidates: Candidate[] = [];               // появятся после "Поиска"
+  let vacancies: Vacancy[] = [];
+  let selected: Set<string> = new Set();
+  let candidates: Candidate[] = [];
+  let isLoadingVacancies = false;
   let isSearching = false;
-
-  const toggleSelect = (id: string) => {
-    const next = new Set(selected);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    selected = next;
-  };
+  let err = '';
 
   const hasSelection = () => selected.size > 0;
 
-  // имитация ответа от бэка
+  const toggleSelect = (id: string) => {
+    const next = new Set(selected);
+    next.has(id) ? next.delete(id) : next.add(id);
+    selected = next;
+  };
+
+  const fetchVacancies = async () => {
+    isLoadingVacancies = true; err = '';
+    try {
+      const res = await fetch('/api/vacancy');
+      if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+      const data = await res.json() as Array<any>;
+      vacancies = data.map(v => ({ id: v.id, name: v.name }));
+    } catch (e) {
+      err = e instanceof Error ? e.message : 'Неизвестная ошибка загрузки вакансий';
+      console.error(e);
+    } finally {
+      isLoadingVacancies = false;
+    }
+  };
+
+  // загрузим список слева при входе
+  fetchVacancies();
+
   const runSearch = async () => {
-    if (isSearching) return;
-    isSearching = true;
-    await new Promise((r) => setTimeout(r, 600));
-    candidates = [
-      { id: 'c1', position: 'Middle Data Engineer', score: 86 },
-      { id: 'c2', position: 'Senior Frontend (React)', score: 74 },
-      { id: 'c3', position: 'ML Engineer (NLP)', score: 92 },
-      { id: 'c4', position: 'QA Automation', score: 65 },
-      { id: 'c5', position: 'DevOps Engineer', score: 80 }
-    ];
-    isSearching = false;
+    if (isSearching || selected.size === 0) return;
+    isSearching = true; err = '';
+    candidates = []; // очистим правую колонку
+    try {
+      // параллельно по всем выбранным вакансиям
+      const ids = Array.from(selected);
+      const requests = ids.map(async (vacId) => {
+        const res = await fetch(`/api/vac/${vacId}/matching`, { method: 'PUT' });
+        if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+        const arr = await res.json() as Matching[]; // ожидается массив
+        return arr.map((m, i) => ({
+          id: `${vacId}:${i}`,           // локальный уникальный id карточки
+          position: m.position,
+          score: Math.max(0, Math.min(100, Math.round(m.score)))
+        }));
+      });
+
+      const results = await Promise.all(requests);
+      candidates = results.flat();
+    } catch (e) {
+      err = e instanceof Error ? e.message : 'Неизвестная ошибка поиска';
+      console.error(e);
+    } finally {
+      isSearching = false;
+    }
   };
 </script>
 
