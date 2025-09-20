@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Annotated
 from uuid import UUID
 
-from schemas.schemas import VacancyDTO
+from schemas.schemas import VacancyDTO, UserDTO
 from services.parsing_service import ParsingService
 from repositories.db.vacancy_repository import VacancyRepository
 from services.user_service import UserService
@@ -53,16 +53,6 @@ async def add_vacancy(name: Annotated[str, Form(...)], vacancy: UploadFile = Fil
     dto = await parsing_service.add_vacancy(vac_bytes, name)
     return dto
 
-
-@app.post("/register")
-async def register(first_name, last_name, sex, birth_date, current_position) -> UUID:
-    user_id = await user_service.put_user(first_name, last_name, sex, birth_date, current_position)
-    return user_id
-
-@app.post("/update_user_info")
-async def update_user_info(self, id, education=None, experience_years=None, experience_months=None, experience_description=None, hard_skills=None) -> int:
-    await user_service.update_user_info(id, education, experience_years, experience_months, experience_description, hard_skills)
-    
 @app.get("/vacancy")
 async def get_vacancy_list() -> List[VacancyDTO]:
     """
@@ -70,6 +60,7 @@ async def get_vacancy_list() -> List[VacancyDTO]:
     """
     data = await parsing_service.get_vacancy_list()
     return data
+
 
 @app.delete("/vacancy/{id}")
 async def delete_vacancy(id: str = Path(...)) -> None:
@@ -81,3 +72,12 @@ async def delete_vacancy(id: str = Path(...)) -> None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="failed to delete vacancy")
     
+
+@app.post("/register")
+async def register(user: UserDTO) -> UUID:
+    user_id = await user_service.put_user(user)
+    return user_id
+
+@app.patch("/user/update/{id}")
+async def update_user_info(user: UserDTO, id: str = Path(...)) -> UserDTO:
+    return await user_service.update_user_info(user, id)
