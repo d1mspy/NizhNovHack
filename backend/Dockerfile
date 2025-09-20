@@ -12,17 +12,18 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-      aria2 ca-certificates \
+      ca-certificates \
+      curl \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements/ requirements/
 
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip wheel --prefer-binary -r requirements/docs.txt     -w /wheels
+    pip wheel --prefer-binary -r requirements/docs.txt -w /wheels
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip wheel --prefer-binary -r requirements/ml.txt   -w /wheels
+    pip wheel --prefer-binary -r requirements/ml.txt -w /wheels
 RUN --mount=type=cache,target=/root/.cache/pip \
-    pip wheel --prefer-binary -r requirements/base.txt   -w /wheels
+    pip wheel --prefer-binary -r requirements/base.txt -w /wheels
 RUN --mount=type=cache,target=/root/.cache/pip \
     pip wheel --prefer-binary -r requirements/server.txt -w /wheels
 
