@@ -283,7 +283,6 @@ async def example_usage():
     print(f"Оценка соответствия: {match['score']}/100")
     print(f"Решение: {match['decision']}")
 
-
+# запуск примера 
 if __name__ == "__main__":
-    # Запуск примера
     asyncio.run(example_usage())
