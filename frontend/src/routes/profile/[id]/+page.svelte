@@ -11,11 +11,11 @@
     birthDate: string; // YYYY-MM-DD
     position: string;
     education: string;
-    experienceYears: number;   // <- число
-    experienceMonths: number;  // <- число (0..11)
+    experienceYears: number;
+    experienceMonths: number;
     experienceDescription: string;
-    hardSkills: string;
-    careerPreferences: string;
+    hardSkills: string;          // textarea (CSV)
+    careerPreferences: string;   // локальное поле, на бэк не шлём
   }
 
   let userData: UserData = {
@@ -32,17 +32,97 @@
     careerPreferences: ''
   };
 
+  let loading = false;   // загрузка профиля
+  let saving  = false;   // сохранение профиля
+  let errorMsg = '';     // текст ошибки (загрузка/сохранение)
+
+  const toCsv = (arr: string[] | null | undefined) =>
+    (arr ?? []).join(', ');
+
+  const fromCsv = (text: string): string[] =>
+    text
+      .split(/[,\n;]+/g)
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+  const toISOyyyyMMdd = (d: string) => {
+    // ожидается вход типа 'YYYY-MM-DD' или валидная дата
+    if (!d) return '';
+    // если уже YYYY-MM-DD — вернём как есть
+    if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return d;
+    const date = new Date(d);
+    if (Number.isNaN(date.getTime())) return '';
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  const loadUser = async (id: string) => {
+    loading = true;
+    errorMsg = '';
+    try {
+      const res = await fetch(`/api/user/${id}`, { method: 'GET' });
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        throw new Error(t || `Ошибка загрузки профиля: ${res.status}`);
+      }
+      const data = await res.json() as {
+        id: string;
+        first_name: string;
+        last_name: string;
+        sex: 'male' | 'female';
+        birth_date: string;
+        current_position: string;
+        education?: string | null;
+        experience_years?: number | null;
+        experience_months?: number | null;
+        experience_total_months?: number | null; // служебное
+        experience_description?: string | null;
+        hard_skills?: string[] | null;
+        created_at?: string;
+        updated_at?: string;
+      };
+
+      // Маппинг в локальное состояние (camelCase):
+      userData = {
+        firstName: data.first_name ?? '',
+        lastName: data.last_name ?? '',
+        gender: (data.sex ?? '') as Sex,
+        birthDate: toISOyyyyMMdd(data.birth_date ?? ''),
+        position: data.current_position ?? '',
+        education: data.education ?? '',
+        experienceYears: data.experience_years ?? 0,
+        experienceMonths: data.experience_months ?? 0,
+        experienceDescription: data.experience_description ?? '',
+        hardSkills: toCsv(data.hard_skills),
+        careerPreferences: userData.careerPreferences // не приходит с бэка
+      };
+
+      // обновим localStorage как кэш
+      localStorage.setItem('userProfileData', JSON.stringify(userData));
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Неизвестная ошибка';
+      errorMsg = msg;
+      console.error('Load user error:', e);
+    } finally {
+      loading = false;
+    }
+  };
+
   onMount(() => {
+    const id = $page.params.id;
+
+    // 1) локальный кэш (покажем сразу)
     const savedUserData = localStorage.getItem('userProfileData');
     if (savedUserData) {
       try {
         const parsed = JSON.parse(savedUserData) as Partial<UserData>;
         userData = { ...userData, ...parsed };
-      } catch {
-        // если вдруг битые данные — тихо игнорим
-      }
+      } catch { /* ignore */ }
     }
 
+    // 2) «подтягиваем» стартовые данные регистрации (если есть)
     const registrationData = localStorage.getItem('registrationData');
     if (registrationData) {
       try {
@@ -52,32 +132,73 @@
         userData.gender = (regData.gender as Sex) ?? userData.gender;
         userData.birthDate = regData.birthDate ?? userData.birthDate;
         userData.position = regData.position ?? userData.position;
-      } catch {
-        // игнорим
-      }
+      } catch { /* ignore */ }
     }
+
+    // 3) авторитетная загрузка с бэка
+    if (id) loadUser(id);
   });
 
-  function saveProfile() {
-    localStorage.setItem('userProfileData', JSON.stringify(userData));
-    alert('Данные успешно сохранены!');
+  async function saveProfile() {
+    const id = $page.params.id;
+    if (!id) return;
+
+    saving = true;
+    errorMsg = '';
+
+    // Маппинг в snake_case payload
+    const payload = {
+      first_name: userData.firstName.trim(),
+      last_name: userData.lastName.trim(),
+      sex: userData.gender || undefined, // '' -> undefined (можно опустить)
+      birth_date: toISOyyyyMMdd(userData.birthDate) || undefined,
+      current_position: userData.position.trim() || undefined,
+      education: userData.education.trim() || undefined,
+      experience_years: Number.isFinite(userData.experienceYears) ? userData.experienceYears : 0,
+      experience_months: Number.isFinite(userData.experienceMonths) ? userData.experienceMonths : 0,
+      experience_description: userData.experienceDescription.trim() || undefined,
+      hard_skills: fromCsv(userData.hardSkills) // массив строк
+      // не отправляем: id, experience_total_months, created_at, updated_at
+    };
+
+    try {
+      const res = await fetch(`/api/user/update/${id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const t = await res.text().catch(() => '');
+        throw new Error(t || `Ошибка сохранения профиля: ${res.status}`);
+      }
+
+      // на успех — обновим кэш
+      localStorage.setItem('userProfileData', JSON.stringify(userData));
+      alert('Данные успешно сохранены!');
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Неизвестная ошибка';
+      errorMsg = msg;
+      console.error('Save user error:', e);
+    } finally {
+      saving = false;
+    }
   }
 
   function goBack() {
-    const id = $page.params.id; // реактивно из стора
+    const id = $page.params.id;
     goto(`/user/${id}`);
   }
 
-  // Возраст по дате рождения
+  // Возраст по дате рождения (для отображения)
   const calculateAge = (birthDate: string): string => {
     if (!birthDate) return '';
     const birth = new Date(birthDate);
+    if (Number.isNaN(birth.getTime())) return '';
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
-    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
-      age--;
-    }
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) age--;
     return `${age} лет`;
   };
 
@@ -87,7 +208,6 @@
     return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ru-RU');
   };
 
-  // Удобнее держать расчёт как функцию/переменную:
   const totalExperienceYears = () =>
     (userData.experienceYears || 0) + (userData.experienceMonths || 0) / 12;
 </script>
@@ -156,6 +276,14 @@
       <!-- Правая колонка - Дополнительная информация -->
       <div class="additional-info-card">
         <h3 class="form-title">Дополнительная информация</h3>
+
+        {#if loading}
+          <div class="experience-total" role="status">Загружаем профиль…</div>
+        {/if}
+
+        {#if errorMsg}
+          <div class="error-banner" role="alert">{errorMsg}</div>
+        {/if}
 
         <form on:submit|preventDefault={saveProfile} class="profile-form">
           <!-- Образование -->
@@ -250,8 +378,8 @@
           </div>
 
           <!-- Кнопка сохранения -->
-          <button type="submit" class="save-btn">
-            Сохранить изменения
+          <button type="submit" class="save-btn" disabled={saving || loading}>
+            {saving ? 'Сохраняем…' : 'Сохранить изменения'}
           </button>
         </form>
       </div>
@@ -535,6 +663,16 @@
     color: #64748b;
     font-weight: 500;
     min-width: 60px;
+  }
+
+  
+  .error-banner {
+    margin: 10px 0 20px;
+    padding: 12px 16px;
+    border-left: 4px solid #ef4444;
+    background: #fee2e2;
+    color: #991b1b;
+    border-radius: 8px;
   }
 
   .experience-total {
