@@ -2,6 +2,7 @@ from uuid import UUID
 
 from repositories.db.user_repository import user_repository
 from schemas.schemas import UserDTO
+from ai_services.career import ai_service
 
 class UserService:
     def __init__(self):
@@ -19,4 +20,7 @@ class UserService:
             experience_description=user.experience_description,
             hard_skills=user.hard_skills,
         )
-        
+    async def chat_llm(self, id, text_message):
+        return await ai_service.process_message(user_id=id, message=text_message)
+
+user_service = UserService()

@@ -37,6 +37,12 @@
 
     vacancies = [...vacancies, newVacancy];
     vacancyTitle = '';
+    
+    // Сбрасываем поле файла
+    const fileInput = document.querySelector('.file-input') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
     pdfFile = null;
     
     localStorage.setItem('vacancies', JSON.stringify(vacancies));
@@ -66,79 +72,96 @@
 
 <div class="page-container">
   <button class="search-candidates-btn" on:click={goToCandidateSearch}>
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+      <path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
     Поиск кандидатов
   </button>
 
-  <div class="add-vacancy-container">
-    <h2>Добавить вакансию</h2>
-    
-    <div class="input-group">
-      <input
-        type="text"
-        bind:value={vacancyTitle}
-        placeholder="Название вакансии"
-        class="input-field"
-      />
-    </div>
-
-    <div class="input-group">
-      <label class="file-label">
+  <div class="main-content">
+    <div class="section-card">
+      <h2>Добавить вакансию</h2>
+      
+      <div class="input-group">
         <input
-          type="file"
-          accept=".pdf"
-          on:change={handleFileUpload}
-          class="file-input"
+          type="text"
+          bind:value={vacancyTitle}
+          placeholder="Название вакансии"
+          class="input-field"
         />
-        <span class="file-text">
-          {pdfFile ? pdfFile.name : 'Загрузить описание (PDF)'}
-        </span>
-      </label>
+      </div>
+
+      <div class="input-group">
+        <label class="file-label">
+          <input
+            type="file"
+            accept=".pdf"
+            on:change={handleFileUpload}
+            class="file-input"
+          />
+          <span class="file-text">
+            {pdfFile ? pdfFile.name : 'Загрузить описание (PDF)'}
+          </span>
+        </label>
+      </div>
+
+      <button
+        on:click={addVacancy}
+        disabled={!vacancyTitle.trim()}
+        class="primary-btn"
+      >
+        Добавить вакансию
+      </button>
     </div>
 
-    <button
-      on:click={addVacancy}
-      disabled={!vacancyTitle.trim()}
-      class="add-btn"
-    >
-      Добавить
-    </button>
-  </div>
-
-  <!-- Список вакансий -->
-  <div class="vacancies-section">
-    <h3>Вакансии ({vacancies.length})</h3>
-    
-    {#if vacancies.length > 0}
-      <div class="vacancies-list">
-        {#each vacancies as vacancy (vacancy.id)}
-          <div class="vacancy-item">
-            <span class="vacancy-title">{vacancy.title}</span>
-            <div class="vacancy-actions">
-              {#if vacancy.fileName}
-                <span class="file-badge">PDF</span>
-              {/if}
+    <!-- Список вакансий -->
+    <div class="section-card">
+      <div class="section-header">
+        <h3>Мои вакансии</h3>
+        <span class="badge">{vacancies.length}</span>
+      </div>
+      
+      {#if vacancies.length > 0}
+        <div class="vacancies-list">
+          {#each vacancies as vacancy (vacancy.id)}
+            <div class="vacancy-item">
+              <div class="vacancy-info">
+                <span class="vacancy-title">{vacancy.title}</span>
+                {#if vacancy.fileName}
+                  <span class="file-indicator">PDF</span>
+                {/if}
+              </div>
               <button
                 on:click={() => deleteVacancy(vacancy.id)}
                 class="delete-btn"
-                title="Удалить"
+                title="Удалить вакансию"
               >
-                ×
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
               </button>
             </div>
-          </div>
-        {/each}
-      </div>
-    {:else}
-      <div class="empty-state">
-        <p>Нет добавленных вакансий</p>
-      </div>
-    {/if}
+          {/each}
+        </div>
+      {:else}
+        <div class="empty-state">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none">
+            <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" stroke="#999" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <p>Нет добавленных вакансий</p>
+          <span class="empty-subtitle">Добавьте первую вакансию</span>
+        </div>
+      {/if}
+    </div>
   </div>
 </div>
 
 <style>
   :global(body) {
-    background: #ffffff;
+    margin: 0;
+    padding: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: #f8fafc;
     color: #333;
     line-height: 1.5;
   }
@@ -147,41 +170,92 @@
     max-width: 600px;
     margin: 0 auto;
     padding: 40px 20px;
+    position: relative;
+    min-height: 100vh;
+    box-sizing: border-box;
   }
 
   .search-candidates-btn {
-    position: absolute;
+    position: fixed;
     top: 20px;
     right: 20px;
-    padding: 8px 16px;
-    background: transparent;
-    color: #0056b3;
-    border: 1px solid #0056b3;
-    border-radius: 6px;
+    padding: 12px 20px;
+    background: #1DAFF7;
+    color: white;
+    border: none;
+    border-radius: 10px;
     cursor: pointer;
     font-size: 14px;
-    transition: all 0.2s ease;
+    font-weight: 600;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(29, 175, 247, 0.3);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 1000;
   }
 
   .search-candidates-btn:hover {
-    background: #0056b3;
-    color: white;
+    background: #0d8dcd;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(29, 175, 247, 0.4);
   }
 
-  .add-vacancy-container {
-    background: #fafafa;
-    padding: 30px;
-    border-radius: 8px;
-    border: 1px solid #e0e0e0;
-    margin-bottom: 30px;
+  .search-candidates-btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 10px rgba(29, 175, 247, 0.3);
   }
 
-  .add-vacancy-container h2 {
-    margin: 0 0 25px 0;
+  .search-candidates-btn svg {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+  }
+
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    padding-top: 10px;
+  }
+
+  .section-card {
+    background: white;
+    padding: 32px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e2e8f0;
+  }
+
+  .section-card h2 {
+    margin: 0 0 24px 0;
+    font-size: 24px;
+    font-weight: 600;
+    color: #1f2937;
+    text-align: center;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  .section-header h3 {
+    margin: 0;
     font-size: 20px;
     font-weight: 600;
-    color: #333;
-    text-align: center;
+    color: #1f2937;
+  }
+
+  .badge {
+    background: #e0f2fe;
+    color: #1DAFF7;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
   }
 
   .input-group {
@@ -190,17 +264,18 @@
 
   .input-field {
     width: 100%;
-    padding: 12px;
-    border: 1px solid #ddd;
-    border-radius: 6px;
+    padding: 14px;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
     font-size: 16px;
     box-sizing: border-box;
-    transition: border-color 0.2s ease;
+    transition: all 0.2s ease;
+    font-family: inherit;
   }
 
   .input-field:focus {
     outline: none;
-    border-color: #0056b3;
+    border-color: #1DAFF7;
   }
 
   .file-label {
@@ -214,127 +289,187 @@
 
   .file-text {
     display: block;
-    padding: 12px;
-    border: 1px dashed #ddd;
-    border-radius: 6px;
+    padding: 14px;
+    border: 2px dashed #e2e8f0;
+    border-radius: 8px;
     text-align: center;
-    color: #666;
+    color: #64748b;
     transition: all 0.2s ease;
+    font-size: 16px;
   }
 
   .file-text:hover {
-    border-color: #0056b3;
-    color: #0056b3;
+    border-color: #1DAFF7;
+    color: #1DAFF7;
+    background: #f0f9ff;
   }
 
-  .add-btn {
+  .primary-btn {
     width: 100%;
-    padding: 12px;
-    background: #0056b3;
+    padding: 16px;
+    background: #1DAFF7;
     color: white;
     border: none;
-    border-radius: 6px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.2s ease;
-  }
-
-  .add-btn:hover:not(:disabled) {
-    background: #004494;
-  }
-
-  .add-btn:disabled {
-    background: #ccc;
-    cursor: not-allowed;
-  }
-
-  .vacancies-section {
-    background: #fafafa;
-    padding: 30px;
     border-radius: 8px;
-    border: 1px solid #e0e0e0;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
   }
 
-  .vacancies-section h3 {
-    margin: 0 0 20px 0;
-    font-size: 18px;
-    font-weight: 600;
-    color: #333;
+  .primary-btn:hover:not(:disabled) {
+    background: #0d8dcd;
+    transform: translateY(-1px);
+  }
+
+  .primary-btn:disabled {
+    background: #cbd5e1;
+    cursor: not-allowed;
+    transform: none;
   }
 
   .vacancies-list {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
   }
 
   .vacancy-item {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 15px;
-    background: white;
-    border-radius: 6px;
-    border: 1px solid #e0e0e0;
+    padding: 16px;
+    background: #f8fafc;
+    border-radius: 8px;
+    border: 1px solid #e2e8f0;
+    transition: all 0.2s ease;
+  }
+
+  .vacancy-item:hover {
+    border-color: #cbd5e1;
+    background: #f1f5f9;
+  }
+
+  .vacancy-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
   }
 
   .vacancy-title {
     font-weight: 500;
-    color: #333;
+    color: #1f2937;
+    font-size: 16px;
   }
 
-  .vacancy-actions {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-  }
-
-  .file-badge {
+  .file-indicator {
+    background: #e0f2fe;
+    color: #1DAFF7;
     padding: 4px 8px;
-    background: #e8f4ff;
-    color: #0056b3;
-    border-radius: 4px;
+    border-radius: 6px;
     font-size: 12px;
     font-weight: 500;
   }
 
   .delete-btn {
-    padding: 4px 8px;
+    padding: 8px;
     background: transparent;
-    color: #ff4444;
-    border: 1px solid #ff4444;
-    border-radius: 4px;
+    color: #ef4444;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
     transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .delete-btn:hover {
-    background: #ff4444;
+    background: #ef4444;
     color: white;
+    border-color: #ef4444;
   }
 
   .empty-state {
     text-align: center;
-    padding: 40px 20px;
-    color: #999;
+    padding: 48px 20px;
+    color: #64748b;
+  }
+
+  .empty-state svg {
+    margin-bottom: 16px;
+    opacity: 0.5;
+  }
+
+  .empty-state p {
+    margin: 0 0 8px 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #64748b;
+  }
+
+  .empty-subtitle {
+    font-size: 14px;
+    color: #94a3b8;
   }
 
   @media (max-width: 768px) {
     .page-container {
-      padding: 20px 15px;
+      padding: 30px 16px;
     }
 
     .search-candidates-btn {
-      position: static;
-      margin-bottom: 20px;
-      width: 100%;
+      top: 15px;
+      right: 15px;
+      padding: 10px 16px;
+      font-size: 13px;
     }
 
-    .add-vacancy-container,
-    .vacancies-section {
+    .search-candidates-btn svg {
+      width: 14px;
+      height: 14px;
+    }
+
+    .section-card {
+      padding: 24px;
+    }
+
+    .section-card h2 {
+      font-size: 20px;
+    }
+
+    .section-header h3 {
+      font-size: 18px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .page-container {
+      padding: 25px 12px;
+    }
+
+    .search-candidates-btn {
+      top: 12px;
+      right: 12px;
+      padding: 8px 14px;
+      font-size: 12px;
+    }
+
+    .section-card {
       padding: 20px;
+    }
+
+    .input-field,
+    .file-text {
+      padding: 12px;
+    }
+
+    .primary-btn {
+      padding: 14px;
+    }
+
+    .vacancy-item {
+      padding: 12px;
     }
   }
 </style>

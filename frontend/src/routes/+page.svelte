@@ -49,7 +49,6 @@
 
 <style>
   :global(body) {
-    background: #ffffff;
     color: #333;
     line-height: 1.5;
   }
@@ -106,7 +105,7 @@
   .role-btn:hover {
     transform: translateY(-2px);
     box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-    border-color: #0056b3;
+    border-color: #1DAFF7;
   }
 
   .hr-btn:hover {

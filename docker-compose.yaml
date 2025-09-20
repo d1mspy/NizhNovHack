@@ -1,27 +1,4 @@
-networks:
-  devnet:
-    driver: bridge
-
 services:
-  backend:
-    env_file: .env
-    build: 
-      context: backend
-      dockerfile: Dockerfile
-    ports:
-    - "8000:8000"
-    depends_on:
-      - postgres
-    networks:
-      - devnet
-
-  frontend:
-    build:
-      context: frontend
-      dockerfile: Dockerfile
-    networks:
-      - devnet
-
   postgres:
     image: postgres:17.0
     env_file: .env
@@ -35,15 +12,26 @@ services:
       - ./data/pg:/var/lib/postgresql/data
     networks:
       - devnet
-  
-  nginx:
-    image: nginx:1.25.4-alpine
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${APP_PG__USER} -d ${APP_PG__DATABASE}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20  # Увеличьте количество попыток
+
+  backend:
+    env_file: .env
+    build: 
+      context: backend
+      dockerfile: Dockerfile
     ports:
-      - "80:80"
-    volumes:
-      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+      - "8000:8000"
     depends_on:
-      - backend
-      - frontend
+      postgres:
+        condition: service_healthy  # Ждем пока БД станет здоровой
     networks:
       - devnet
+
+networks:
+  devnet:
+    name: devnet
+    driver: bridge
