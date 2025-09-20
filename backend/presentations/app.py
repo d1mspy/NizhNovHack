@@ -1,6 +1,7 @@
 from fastapi import FastAPI, UploadFile, File, Path, HTTPException, status, Form
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Annotated
+from uuid import UUID
 
 from schemas.schemas import VacancyDTO
 from services.parsing_service import ParsingService
@@ -54,7 +55,7 @@ async def add_vacancy(name: Annotated[str, Form(...)], vacancy: UploadFile = Fil
 
 
 @app.post("/register")
-async def register(first_name, last_name, sex, birth_date, current_position) -> int:#user_id
+async def register(first_name, last_name, sex, birth_date, current_position) -> UUID:
     user_id = await user_service.put_user(first_name, last_name, sex, birth_date, current_position)
     return user_id
 

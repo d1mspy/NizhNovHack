@@ -4,6 +4,7 @@ from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from datetime import datetime
 from persistent.db.tables import User
+from uuid import UUID
 
 class UserRepository:
     def __init__(self)-> AsyncSession:
@@ -24,7 +25,7 @@ class UserRepository:
                     status_code=500,
                     detail=f"Database operation failed: {str(e)}"
                 )
-    async def put_user(self, first_name, last_name, sex, birth_date, current_position) -> int:
+    async def put_user(self, first_name, last_name, sex, birth_date, current_position) -> UUID:
         async def _put(session: AsyncSession):
             try:
                 birth_date_obj = datetime.strptime(birth_date, "%d %m %Y").date()
@@ -43,7 +44,7 @@ class UserRepository:
                     first_name = first_name,
                     last_name = last_name,
                     sex = sex,
-                    birth_date=birth_date,
+                    birth_date=birth_date_obj,
                     current_position = current_position
                 )
                 .returning(User.id)
