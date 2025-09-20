@@ -13,13 +13,11 @@
 
   let fits: FitVacancy[] = [];
 
-  // какая карточка раскрыта (поповер)
   let openId: string | null = null;
   const toggleCard = (id: string) => {
     openId = openId === id ? null : id;
   };
 
-  // закрытие поповера по клику вне и по Esc
   function onDocClick(e: MouseEvent) {
     const t = e.target as HTMLElement;
     if (!t.closest('.vacancy-card')) openId = null;
@@ -42,16 +40,20 @@
     if (raw) {
       try {
         const parsed = JSON.parse(raw) as Array<any>;
-        fits = (Array.isArray(parsed) ? parsed : []).map((x, i) => ({
-          id: String(x.id ?? i),
-          name: String(x.name ?? ''),
-          score: clamp(Number(x.score ?? 0)),
-          reason: String(x.reason ?? '')
-        }));
+        fits = (Array.isArray(parsed) ? parsed : [])
+          .map((x, i) => ({
+            id: String(x.id ?? i),
+            name: String(x.name ?? ''),
+            score: clamp(Number(x.score ?? 0)),
+            reason: String(x.reason ?? '')
+          }))
+          // фильтруем по score
+          .filter((x) => x.score > 65)
+          // сортируем по убыванию score
+          .sort((a, b) => b.score - a.score);
       } catch {
         fits = [];
       }
-
     }
 
     return () => {
