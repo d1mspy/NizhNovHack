@@ -3,6 +3,7 @@ from uuid import UUID
 from repositories.db.user_repository import user_repository
 from schemas.schemas import UserDTO
 from ai_services.career import ai_service
+from utils.concatination import user_to_single_line
 
 class UserService:
     def __init__(self):
@@ -25,6 +26,7 @@ class UserService:
 
     async def start_chat_llm(self, id):
         await ai_service.clear_history()
-        user_info = 
-        return await ai_service.process_message(user_id=id, message=)
+        user_info = await self.repository.get_user_by_id(id=id)
+        user_info_one_line = await user_to_single_line(user_info)
+        return await ai_service.process_message(user_id=id, message=user_info_one_line)
 user_service = UserService()
