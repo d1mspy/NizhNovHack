@@ -1,4 +1,3 @@
-import enum
 from sqlalchemy import (
     Column, Text, Date, Integer, SmallInteger, CheckConstraint, Computed, text
 )
@@ -6,10 +5,7 @@ from sqlalchemy.dialects.postgresql import ENUM, ARRAY
 from sqlalchemy.sql import quoted_name
 
 from persistent.db.base import Base, WithId, With_created_at, With_updated_at
-
-class SexEnum(enum.Enum):
-    male = "male"
-    female = "female"
+from schemas.schemas import SexEnum
 
 class User(Base, WithId, With_created_at, With_updated_at):
     __tablename__ = quoted_name("user", True)
