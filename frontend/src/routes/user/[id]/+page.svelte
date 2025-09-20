@@ -1,8 +1,11 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { get } from 'svelte/store';
 
   function goToProfile() {
-    goto('/profile');
+    const id = get(page).params.id;
+    goto(`/profile/${id}`);
   }
 
   function goToCareerConsultant() {

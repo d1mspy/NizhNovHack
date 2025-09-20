@@ -1,75 +1,97 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
 
-  // Данные пользователя из localStorage
-  let userData = {
+  type Sex = 'male' | 'female' | '';
+  interface UserData {
+    firstName: string;
+    lastName: string;
+    gender: Sex;
+    birthDate: string; // YYYY-MM-DD
+    position: string;
+    education: string;
+    experienceYears: number;   // <- число
+    experienceMonths: number;  // <- число (0..11)
+    experienceDescription: string;
+    hardSkills: string;
+    careerPreferences: string;
+  }
+
+  let userData: UserData = {
     firstName: '',
     lastName: '',
     gender: '',
     birthDate: '',
     position: '',
     education: '',
-    experienceYears: '',
-    experienceMonths: '',
+    experienceYears: 0,
+    experienceMonths: 0,
     experienceDescription: '',
     hardSkills: '',
     careerPreferences: ''
   };
 
   onMount(() => {
-    // Загружаем данные из localStorage
     const savedUserData = localStorage.getItem('userProfileData');
     if (savedUserData) {
-      userData = { ...userData, ...JSON.parse(savedUserData) };
+      try {
+        const parsed = JSON.parse(savedUserData) as Partial<UserData>;
+        userData = { ...userData, ...parsed };
+      } catch {
+        // если вдруг битые данные — тихо игнорим
+      }
     }
 
-    // Загружаем данные регистрации
     const registrationData = localStorage.getItem('registrationData');
     if (registrationData) {
-      const regData = JSON.parse(registrationData);
-      userData.firstName = regData.firstName || '';
-      userData.lastName = regData.lastName || '';
-      userData.gender = regData.gender || '';
-      userData.birthDate = regData.birthDate || '';
-      userData.position = regData.position || '';
+      try {
+        const regData = JSON.parse(registrationData) as Partial<UserData>;
+        userData.firstName = regData.firstName ?? userData.firstName;
+        userData.lastName = regData.lastName ?? userData.lastName;
+        userData.gender = (regData.gender as Sex) ?? userData.gender;
+        userData.birthDate = regData.birthDate ?? userData.birthDate;
+        userData.position = regData.position ?? userData.position;
+      } catch {
+        // игнорим
+      }
     }
   });
 
   function saveProfile() {
-    // Сохраняем все данные в localStorage
     localStorage.setItem('userProfileData', JSON.stringify(userData));
-    
-    // Показываем сообщение об успешном сохранении
     alert('Данные успешно сохранены!');
   }
 
   function goBack() {
-    goto('/');
+    const id = $page.params.id; // реактивно из стора
+    goto(`/user/${id}`);
   }
 
-  // Функция для расчета возраста из даты рождения
+  // Возраст по дате рождения
   const calculateAge = (birthDate: string): string => {
     if (!birthDate) return '';
-    
     const birth = new Date(birthDate);
     const today = new Date();
     let age = today.getFullYear() - birth.getFullYear();
-    
     const monthDiff = today.getMonth() - birth.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
       age--;
     }
-    
     return `${age} лет`;
   };
 
-  // Форматирование даты рождения
   const formatBirthDate = (date: string): string => {
     if (!date) return '';
-    return new Date(date).toLocaleDateString('ru-RU');
+    const d = new Date(date);
+    return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('ru-RU');
   };
+
+  // Удобнее держать расчёт как функцию/переменную:
+  const totalExperienceYears = () =>
+    (userData.experienceYears || 0) + (userData.experienceMonths || 0) / 12;
 </script>
+
 
 <svelte:head>
   <title>Профиль - HR Консультант</title>
@@ -150,37 +172,45 @@
 
           <!-- Опыт работы -->
           <div class="form-group">
-            <label class="form-label">Опыт работы</label>
-            <div class="experience-container">
+            <fieldset class="experience-container" aria-describedby="exp-hint">
+              <legend class="form-label">Опыт работы</legend>
+
               <div class="experience-inputs">
                 <div class="experience-input-group">
                   <input
+                    id="exp-years"
                     type="number"
                     bind:value={userData.experienceYears}
                     min="0"
                     max="50"
                     placeholder="0"
                     class="experience-input"
+                    aria-label="Опыт работы в годах"
                   />
                   <span class="experience-label">лет</span>
                 </div>
+
                 <div class="experience-input-group">
                   <input
+                    id="exp-months"
                     type="number"
                     bind:value={userData.experienceMonths}
                     min="0"
                     max="11"
                     placeholder="0"
                     class="experience-input"
+                    aria-label="Опыт работы в месяцах"
                   />
                   <span class="experience-label">месяцев</span>
                 </div>
               </div>
-              <div class="experience-total">
-                Всего: <strong>{Math.floor((Number(userData.experienceYears) || 0) + (Number(userData.experienceMonths) || 0) / 12).toFixed(1)}</strong> лет
+
+              <div id="exp-hint" class="experience-total">
+                Всего: <strong>{totalExperienceYears().toFixed(1)}</strong> лет
               </div>
-            </div>
+            </fieldset>
           </div>
+
 
           <!-- Описание опыта -->
           <div class="form-group">
@@ -191,7 +221,7 @@
               placeholder="Опишите ваш профессиональный опыт, ключевые проекты и достижения..."
               rows="4"
               class="form-textarea"
-            />
+            ></textarea>
           </div>
 
           <!-- Хард скиллы -->
@@ -203,7 +233,7 @@
               placeholder="Перечислите технологии через запятую: JavaScript, React, Python, SQL..."
               rows="3"
               class="form-textarea"
-            />
+            ></textarea>
             <div class="input-hint">Указывайте технологии через запятую</div>
           </div>
 
@@ -216,7 +246,7 @@
               placeholder="Какие направления развития вас интересуют? Какие цели в карьере?"
               rows="3"
               class="form-textarea"
-            />
+            ></textarea>
           </div>
 
           <!-- Кнопка сохранения -->
@@ -453,9 +483,14 @@
   }
 
   .experience-container {
+    border: 0;
+    padding: 0;
+    margin: 0;
+    display: flex;
     display: flex;
     flex-direction: column;
     gap: 15px;
+    min-inline-size: auto;
   }
 
   .experience-inputs {
