@@ -60,7 +60,7 @@ async def register(first_name, last_name, sex, birth_date, current_position) -> 
 
 @app.post("/update_user_info")
 async def update_user_info(self, id, education=None, experience_years=None, experience_months=None, experience_description=None, hard_skills=None) -> int:
-    
+    await user_service.update_user_info(id, education, experience_years, experience_months, experience_description, hard_skills)
     
 @app.get("/vacancy")
 async def get_vacancy_list() -> List[VacancyDTO]:
