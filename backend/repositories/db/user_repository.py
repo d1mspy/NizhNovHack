@@ -11,6 +11,8 @@ from infrastructure.db.connect import pg_connection
 from persistent.db.tables import User
 from schemas.schemas import UserDTO
 from utils.uuid import normalize_uuid
+from datetime import date
+from schemas.schemas import SexEnum
 
 class UserRepository:
     def __init__(self) -> None:
@@ -69,8 +71,12 @@ class UserRepository:
 
     async def update_user_info(
         self,
-        id: Union[UUID, str],
-        *,
+        id: Union[UUID, str]=None,
+        first_name: Optional[str]=None,
+        last_name: Optional[str]=None,
+        sex: Optional[SexEnum]=None,
+        birth_date: Optional[date]=None,
+        current_position: Optional[str]=None,
         education: Optional[str] = None,
         experience_years: Optional[int] = None,
         experience_months: Optional[int] = None,
@@ -85,6 +91,16 @@ class UserRepository:
             vid = normalize_uuid(id)
             values: Dict[str, Any] = {}
 
+            if first_name is not None:
+                values["first_name"] = first_name
+            if first_name is not None:
+                values["last_name"] = last_name
+            if sex is not None:
+                values["sex"] = sex
+            if birth_date is not None:
+                values["birth_date"] = birth_date
+            if current_position is not None:
+                values["current_position"] = current_position
             if education is not None:
                 values["education"] = education
             if experience_years is not None:

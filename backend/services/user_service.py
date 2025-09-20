@@ -25,7 +25,12 @@ class UserService:
     
     async def update_user_info(self, user: UserDTO, id: str) -> UserDTO:
         return await self.repository.update_user_info(
-            id, 
+            id,
+            first_name=user.first_name,
+            last_name=user.last_name,
+            sex=user.sex,
+            birth_date=user.birth_date,
+            current_position=user.current_position,
             education=user.education, 
             experience_years=user.experience_years, 
             experience_months=user.experience_months,
