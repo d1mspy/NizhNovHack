@@ -83,7 +83,18 @@ async def chat(message:str, id: str = Path(...)) -> str:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="failed to give answer")
     return answer
-    
+
+@app.post("/start_chat/{id}")
+async def start_chat(id: str = Path(...)) -> str:
+    """
+    удаление вакансии
+    """
+    answer = await user_service.start_chat_llm(id=id)
+    if not answer:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="failed to start chat")
+    return answer
+
 @app.post("/register")
 async def register(user: UserDTO) -> UUID:
     user_id = await user_service.put_user(user)
