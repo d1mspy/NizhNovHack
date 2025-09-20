@@ -8,14 +8,30 @@
     goto(`/profile/${id}`);
   }
 
-  function goToCareerConsultant() {
-    goto('/career-chat');
+  async function goToCareerConsultant() {
+    const id = get(page).params.id;
+
+    try {
+      const res = await fetch(`/api/start_chat/${id}`, { method: 'PUT' });
+      if (res.ok) {
+        const raw = (await res.text()).trim();
+        const text = raw.replace(/^"(.+)"$/, '$1'); // убрать возможные кавычки
+        sessionStorage.setItem(`chatInit:${id}`, text);
+      }
+      // если не ok — просто идем дальше без приветствия
+    } catch {
+      // игнорируем, все равно переходим в чат
+    }
+
+    await goto(`/career-chat/${id}`);
   }
 
   function goToCareerProspects() {
-    goto('/career-prospects');
+    const id = get(page).params.id;
+    goto(`/career-prospects/${id}`);
   }
 </script>
+
 
 <svelte:head>
   <title>Главная - HR Консультант</title>

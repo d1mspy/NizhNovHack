@@ -146,9 +146,10 @@ class UserDTO(BaseModel):
 class MatchResultDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    user_id: str | None = None
     decision: bool = False
     vacancy: VacancyDTO | None = None
-    total: float = Field(..., ge=0.0, le=1.0, description="Aggregated score in [0,1]")
+    score: float = Field(..., ge=0.0, le=1.0, description="Aggregated score in [0,1]")
     breakdown: Dict[str, float] = Field(default_factory=dict, description="Per-metric scores in [0,1]")
     details: Dict[str, Any] = Field(default_factory=dict, description="Debug/trace info (matches, tokens, etc.)")
 
@@ -158,6 +159,19 @@ class MatchResultDTO(BaseModel):
             if not (0.0 <= v <= 1.0):
                 raise ValueError(f"breakdown[{k}] must be in [0,1], got {v}")
         return self
+    
+class UserLogin(BaseModel):
+    first_name: str
+    last_name: str
+    
+class MatchingResponse(BaseModel):
+    score: int
+    position: str
+    decision: str
+    reasoning_report: str
+    
+class Message(BaseModel):
+    text: str
     
 class SexEnum(enum.Enum):
     male = "male"
@@ -172,6 +186,6 @@ class ParsedResult:
     
 @dataclass
 class MatchResult:
-    total: float
+    score: float
     breakdown: Dict[str, float]
     details: Dict[str, Any]
