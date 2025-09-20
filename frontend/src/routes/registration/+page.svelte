@@ -88,7 +88,7 @@
     const payload = {
       first_name: formData.firstName.trim(),
       last_name: formData.lastName.trim(),
-      sex: formData.gender, // 'male' | 'female'
+      sex: formData.gender,
       birth_date: formData.birthDate, // 'YYYY-MM-DD' из <input type="date">
       current_position: formData.position.trim()
     };
@@ -106,7 +106,6 @@
         throw new Error(errText || `Ошибка запроса: ${res.status}`);
       }
 
-      // ответ — НЕ json, а строка с uuid (возможны кавычки)
       const raw = (await res.text()).trim();
       const id = raw.replace(/^"(.+)"$/, '$1'); // убираем кавычки, если FastAPI вернул JSON-строку
 
