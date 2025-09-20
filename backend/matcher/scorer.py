@@ -64,4 +64,4 @@ def compute_match(
         "vacancy_max": vacancy.max_exp_months,
         **skill_det
     }
-    return MatchResult(total=total, breakdown=breakdown, details=details)
+    return MatchResult(score=total, breakdown=breakdown, details=details)

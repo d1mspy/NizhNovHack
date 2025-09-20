@@ -1,3 +1,4 @@
+from fastapi import HTTPException
 from sqlalchemy import select, delete
 from sqlalchemy.exc import IntegrityError
 from typing import List, Union
@@ -32,6 +33,14 @@ class VacancyRepository:
             vacancies: list[Vacancy] = result.scalars().all()
 
         return [VacancyDTO.model_validate(v) for v in vacancies]
+    
+    async def get_vacancy_by_id(self, id: Union[str, UUID]) -> VacancyDTO:
+        vid = normalize_uuid(id)
+        async with self._sessionmaker() as session:
+            obj = await session.get(Vacancy, vid)
+            if obj is None:
+                raise HTTPException(status_code=404, detail="Vacancy not found")
+            return VacancyDTO.model_validate(obj)
             
     async def delete_vacancy(self, id: Union[str, UUID]) -> bool:
         vid = normalize_uuid(id)

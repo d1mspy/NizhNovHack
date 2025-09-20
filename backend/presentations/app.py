@@ -4,7 +4,7 @@ from typing import List, Annotated
 from uuid import UUID
 
 from ai_services.matcher import analyzer
-from schemas.schemas import VacancyDTO, UserDTO, UserLogin
+from schemas.schemas import VacancyDTO, UserDTO, UserLogin, MatchingResponse
 from services.parsing_service import parsing_service
 from services.user_service import user_service
 from services.matching_service import matching_service
@@ -98,6 +98,7 @@ async def get_all_users()->List[UserDTO]:
     """
     answer = await user_service.get_all_users()
     return answer
+
 @app.post("/register")
 async def register(user: UserDTO) -> UUID:
     user_id = await user_service.put_user(user)
@@ -127,6 +128,28 @@ async def match(user_id: str = Path(...)):
                 vacancy=res.vacancy.description
             )
             resps.append(resp)
+    
+    return resps
+
+@app.put("/vac/{vac_id}/matching")
+async def match(vac_id: str = Path(...)):
+    results = await matching_service.vacancy_match(vac_id)
+    resps = []
+    for res in results:
+        if res.decision:
+            profile = await matching_service.get_user_dict(res.user_id)
+            resp = await analyzer.match(
+                user_profile=profile, 
+                is_user=False, 
+                vacancy=res.vacancy.description
+            )
+            feedback = MatchingResponse(
+                score=resp.score,
+                position=profile["current_position"],
+                decision=resp.decision,
+                reasoning_report=resp.reasoning_report
+            )
+            resps.append(feedback)
     
     return resps
 

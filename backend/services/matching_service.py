@@ -13,8 +13,8 @@ class MatchingService:
         self.vacancy_repository = vacancy_repository
 
     async def match(self, user_id: str) -> List[MatchResultDTO]:
-        vacs = await vacancy_repository.get_vacancy_list()
-        user = await user_repository.get_user_by_id(user_id)
+        vacs = await self.vacancy_repository.get_vacancy_list()
+        user = await self.user_repository.get_user_by_id(user_id)
         
         results = []
         for vac in vacs:
@@ -27,13 +27,29 @@ class MatchingService:
             
         return results
     
+    async def vacancy_match(self, vac_id: str) -> List[MatchResultDTO]:
+        users = await self.user_repository.get_all_users()
+        vac = await self.vacancy_repository.get_vacancy_by_id(vac_id)
+        
+        results = []
+        for user in users:
+            res = compute_match(user, vac, cfg)
+            decision = _validate_res(res)
+            dto = MatchResultDTO.model_validate(res)
+            dto.decision = decision
+            dto.vacancy = vac
+            dto.user_id = user.id
+            results.append(dto)
+            
+        return results
+    
     async def get_user_dict(self, user_id: str) -> dict:
         user = await user_repository.get_user_by_id(user_id)
         user_dict = user.to_plain_dict()
         return user_dict
             
 def _validate_res(res: MatchResult) -> bool:
-    score = res.total
+    score = res.score
     if score >= 0.5:
         return True
     return False
