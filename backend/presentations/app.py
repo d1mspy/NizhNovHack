@@ -5,8 +5,9 @@ from uuid import UUID
 
 from schemas.schemas import VacancyDTO, UserDTO
 from services.parsing_service import ParsingService
-from repositories.db.vacancy_repository import VacancyRepository
+from repositories.db.vacancy_repository import vacancy_repository
 from services.user_service import user_service
+from services.matching_service import matching_service
 from infrastructure.db.connect import sync_create_tables 
 
 app = FastAPI(title="Т1 хак",
@@ -27,8 +28,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-vac_repo = VacancyRepository()
-parsing_service = ParsingService(vac_repo)
+parsing_service = ParsingService(vacancy_repository)
 
 @app.get("/")
 async def test_endpoint() -> str:
@@ -92,3 +92,8 @@ async def register(user: UserDTO) -> UUID:
 @app.patch("/user/update/{id}")
 async def update_user_info(user: UserDTO, id: str = Path(...)) -> UserDTO:
     return await user_service.update_user_info(user, id)
+
+@app.put("/{user_id}/matching")
+async def match(user_id: str = Path(...)):
+    results = await matching_service.match(user_id)
+    return results

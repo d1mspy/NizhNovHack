@@ -3,7 +3,7 @@ from pydantic import BaseModel, Field, ConfigDict, model_validator, field_valida
 from datetime import datetime, date
 from uuid import UUID
 from dataclasses import dataclass
-from typing import List, Optional, Union, Annotated
+from typing import List, Optional, Union, Dict, Any
 import enum
 
 class VacancyDTO(BaseModel):
@@ -112,6 +112,21 @@ class UserDTO(BaseModel):
             "experience_description": self.experience_description,
             "hard_skills": self.hard_skills,
         }
+        
+class MatchResultDTO(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    decision: bool = False
+    total: float = Field(..., ge=0.0, le=1.0, description="Aggregated score in [0,1]")
+    breakdown: Dict[str, float] = Field(default_factory=dict, description="Per-metric scores in [0,1]")
+    details: Dict[str, Any] = Field(default_factory=dict, description="Debug/trace info (matches, tokens, etc.)")
+
+    @model_validator(mode="after")
+    def _check_breakdown(self):
+        for k, v in (self.breakdown or {}).items():
+            if not (0.0 <= v <= 1.0):
+                raise ValueError(f"breakdown[{k}] must be in [0,1], got {v}")
+        return self
     
 class SexEnum(enum.Enum):
     male = "male"
@@ -124,3 +139,8 @@ class ParsedResult:
     must_have: List[str]
     nice_to_have: List[str]
     
+@dataclass
+class MatchResult:
+    total: float
+    breakdown: Dict[str, float]
+    details: Dict[str, Any]

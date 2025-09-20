@@ -50,3 +50,5 @@ class VacancyRepository:
             except IntegrityError:
                 await session.rollback()
                 raise
+            
+vacancy_repository = VacancyRepository()

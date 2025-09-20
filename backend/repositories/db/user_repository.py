@@ -120,9 +120,21 @@ class UserRepository:
 
         return await self._execute_with_session(_update)
     
+<<<<<<< HEAD
     async def get_user(self, id):
         async def _get(session:AsyncSession) -> UserDTO:
             stmt = select(User).where(User.id==id)
+=======
+    async def get_user_by_id(self, id: Union[UUID, str]) -> UserDTO:
+        async def _get(session: AsyncSession) -> UserDTO:
+            vid = normalize_uuid(id)
+            obj = await session.get(User, vid)
+            if obj is None:
+                raise HTTPException(status_code=404, detail="User not found")
+            return UserDTO.model_validate(obj)
+
+        return await self._execute_with_session(_get)
+>>>>>>> 0947c1c1faaa5854c80758890a11d64caee1dac7
     
     
 user_repository = UserRepository()
