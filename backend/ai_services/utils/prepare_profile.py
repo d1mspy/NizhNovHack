@@ -1,8 +1,8 @@
 from typing import Dict, Union, List, Any, Set
 
-default_excluded_keys = ['id', 'first_name', 'last_name', 'experience_years', 'experience_months', 'created_at', 'updated_at']
+default_excluded_keys = {'id', 'first_name', 'last_name', 'experience_years', 'experience_months', 'created_at', 'updated_at'}
 
-def get_text_profile(user_profile: Dict[str, Any], excluded_keys: Union[Set[str], List[str]] = None) -> str:
+def get_text_profile(user_profile: Dict[str, Any], excluded_keys: Union[Set[str], List[str]] = default_excluded_keys) -> str:
     lines = []    
     if excluded_keys is None:
         keys_to_process = user_profile.keys()
