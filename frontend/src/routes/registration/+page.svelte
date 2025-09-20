@@ -75,6 +75,10 @@
   const goBack = (): void => {
     goto('/');
   };
+
+  function goToLogin() {
+    goto('/login');
+  }
 </script>
 
 <svelte:head>
@@ -163,6 +167,8 @@
           <span class="error-text">{errors.position}</span>
         {/if}
       </div>
+
+      <button class="login-btn" on:click={goToLogin}>Уже есть аккаунт? Войдите</button>
 
       <button type="submit" class="submit-btn">
         Зарегистрироваться
@@ -279,6 +285,20 @@
     background-position: right 12px center;
     background-size: 16px;
     padding-right: 40px;
+  }
+
+  .login-btn {
+    text-align: left;
+    margin-bottom: -15px;
+    background: none;
+    border: none;
+    color: #1DAFF7;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .login-btn:hover {
+    text-decoration: underline;
   }
 
   .submit-btn {
