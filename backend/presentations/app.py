@@ -6,7 +6,7 @@ from uuid import UUID
 from schemas.schemas import VacancyDTO
 from services.parsing_service import ParsingService
 from repositories.db.vacancy_repository import VacancyRepository
-from services.user_service import UserService
+from services.user_service import user_service
 from infrastructure.db.connect import sync_create_tables 
 
 app = FastAPI(title="Т1 хак",
@@ -16,7 +16,7 @@ app = FastAPI(title="Т1 хак",
               root_path="/api"
             )
 
-user_service = UserService()
+user_service = user_service
 sync_create_tables()
 
 app.add_middleware(
@@ -60,8 +60,8 @@ async def register(first_name, last_name, sex, birth_date, current_position) -> 
     return user_id
 
 @app.post("/update_user_info")
-async def update_user_info(self, id, education=None, experience_years=None, experience_months=None, experience_description=None, hard_skills=None) -> int:
-    await user_service.update_user_info(id, education, experience_years, experience_months, experience_description, hard_skills)
+async def update_user_info(id, education=None, experience_years=None, experience_months=None, experience_description=None, hard_skills=None) -> bool:
+    return await user_service.update_user_info(id, education, experience_years, experience_months, experience_description, hard_skills)
     
 @app.get("/vacancy")
 async def get_vacancy_list() -> List[VacancyDTO]:

@@ -63,5 +63,10 @@ class UserRepository:
                                        experience_months = experience_months,
                                        experience_description = experience_description,
                                        hard_skills = hard_skills).where(User.id==id)
+            result = await session.execute(stmt)    
+            if result.rowcount > 0:
+                return True
+            else: return False
+        return await self._execute_with_session(_update)
 
 user_repository = UserRepository()
