@@ -19,4 +19,5 @@ class UserService:
             experience_description=user.experience_description,
             hard_skills=user.hard_skills,
         )
-        
+
+user_service = UserService()
