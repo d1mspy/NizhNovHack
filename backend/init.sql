@@ -30,6 +30,7 @@ CREATE TABLE "user"(
 CREATE TABLE vacancy(
     id UUID PRIMARY KEY,
 
+    name TEXT NOT NULL,
     description TEXT NOT NULL,
 
     min_exp_months SMALLINT,
