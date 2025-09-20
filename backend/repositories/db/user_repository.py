@@ -4,7 +4,7 @@ from typing import Any, Awaitable, Callable, Optional, Union, List, Dict
 from uuid import UUID
 
 from fastapi import HTTPException
-from sqlalchemy import insert, update
+from sqlalchemy import insert, update, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from infrastructure.db.connect import pg_connection
@@ -119,6 +119,10 @@ class UserRepository:
             return UserDTO.model_validate(dict(row))
 
         return await self._execute_with_session(_update)
+    
+    async def get_user(self, id):
+        async def _get(session:AsyncSession) -> UserDTO:
+            stmt = select(User).where(User.id==id)
     
     
 user_repository = UserRepository()

@@ -23,4 +23,8 @@ class UserService:
     async def chat_llm(self, id, text_message):
         return await ai_service.process_message(user_id=id, message=text_message)
 
+    async def start_chat_llm(self, id):
+        await ai_service.clear_history()
+        user_info = 
+        return await ai_service.process_message(user_id=id, message=)
 user_service = UserService()
