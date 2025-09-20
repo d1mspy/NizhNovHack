@@ -4,6 +4,7 @@ from typing import Tuple
 from repositories.db.user_repository import user_repository
 from schemas.schemas import UserDTO, UserLogin
 from ai_services.career import ai_service
+from typing import List
 from utils.concatination import user_to_single_line
 
 class UserService:
@@ -15,6 +16,9 @@ class UserService:
     
     async def check_user(self, user: UserLogin) -> Tuple[bool, UUID]:
         return await user_repository.exists_by_full_name(user.first_name, user.last_name)
+    
+    async def get_all_users(self) -> List[UserDTO]:
+        return await self.repository.get_all_users()
     
     async def update_user_info(self, user: UserDTO, id: str) -> UserDTO:
         return await self.repository.update_user_info(

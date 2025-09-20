@@ -91,6 +91,13 @@ async def start_chat(id: str = Path(...)) -> str:
                             detail="failed to start chat")
     return answer
 
+@app.get("/get_all_users")
+async def get_all_users()->List[UserDTO]:
+    """
+    Возвращает список всех пользователей
+    """
+    answer = await user_service.get_all_users()
+    return answer
 @app.post("/register")
 async def register(user: UserDTO) -> UUID:
     user_id = await user_service.put_user(user)
