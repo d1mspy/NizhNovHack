@@ -218,6 +218,7 @@
 </svelte:head>
 
 <div class="page-container">
+  <!-- Кнопка назад -->
   <button class="back-btn" on:click={goBack}>
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
       <path d="M19 12H5M12 19l-7-7 7-7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -424,6 +425,7 @@
   .back-btn:hover {
     background: #1DAFF7;
     transform: translateY(-2px);
+    color: white;
   }
 
   .back-btn svg {
@@ -588,7 +590,6 @@
   .form-input:focus {
     outline: none;
     border-color: #1DAFF7;
-    box-shadow: 0 0 0 3px rgba(29, 175, 247, 0.1);
   }
 
   .form-textarea {
@@ -606,7 +607,6 @@
   .form-textarea:focus {
     outline: none;
     border-color: #1DAFF7;
-    box-shadow: 0 0 0 3px rgba(29, 175, 247, 0.1);
   }
 
   .experience-container {
