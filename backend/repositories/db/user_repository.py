@@ -1,22 +1,32 @@
-from infrastructure.db.connect import pg_connection
-from sqlalchemy import insert, select, update, delete
-from fastapi import HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
-from datetime import datetime
-from persistent.db.tables import User
+from __future__ import annotations
+
+from typing import Any, Awaitable, Callable, Optional, Union, List, Dict
 from uuid import UUID
 
+from fastapi import HTTPException
+from sqlalchemy import insert, update
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
+
+from infrastructure.db.connect import pg_connection
+from persistent.db.tables import User
+from schemas.schemas import UserDTO
+from utils.uuid import normalize_uuid
+
 class UserRepository:
-    def __init__(self)-> AsyncSession:
-        self._sessionmaker = pg_connection()
-    
-    async def _execute_with_session(self, func, *args, **kwargs):
+    def __init__(self) -> None:
+        self._sessionmaker: async_sessionmaker[AsyncSession] = pg_connection()
+
+    async def _execute_with_session(
+        self,
+        func: Callable[[AsyncSession], Awaitable[Any]],
+    ) -> Any:
         async with self._sessionmaker() as session:
             try:
-                result = await func(session, *args, **kwargs)
+                result = await func(session)
                 await session.commit()
                 return result
             except HTTPException:
+                await session.rollback()
                 raise
             except Exception as e:
                 await session.rollback()
@@ -25,48 +35,90 @@ class UserRepository:
                     status_code=500,
                     detail=f"Database operation failed: {str(e)}"
                 )
-    async def put_user(self, first_name, last_name, sex, birth_date, current_position) -> UUID:
-        async def _put(session: AsyncSession):
-            try:
-                birth_date_obj = datetime.strptime(birth_date, "%d %m %Y").date()
-            except ValueError:
-                try:
-                    birth_date_obj = datetime.strptime(birth_date, "%Y-%m-%d").date()
-                except ValueError:
-                    raise HTTPException(
-                        status_code=400,
-                        detail="Invalid date format. Use 'DD MM YYYY' or 'YYYY-MM-DD'"
-                    )
 
+    async def put_user(self, user: UserDTO) -> UUID:
+        """
+        вставляет пользователя и возвращает его id.
+        """
+        async def _put(session: AsyncSession) -> UUID:
             stmt = (
                 insert(User)
-                .values(
-                    first_name = first_name,
-                    last_name = last_name,
-                    sex = sex,
-                    birth_date=birth_date_obj,
-                    current_position = current_position
-                )
+                .values(**user.to_create_kwargs())
                 .returning(User.id)
             )
             result = await session.execute(stmt)
-            id = result.scalar_one()
-            print(f"put user with id{id}")
-            return id
-        
-        return await self._execute_with_session(_put)
-    
-    async def update_user_info(self, id, education=None, experience_years=None, experience_months=None, experience_description=None, hard_skills=None):
-        async def _update(session: AsyncSession):
-            stmt = update(User).values(education = education,
-                                       experience_years = experience_years,
-                                       experience_months = experience_months,
-                                       experience_description = experience_description,
-                                       hard_skills = hard_skills).where(User.id==id)
-            result = await session.execute(stmt)    
-            if result.rowcount > 0:
-                return True
-            else: return False
-        return await self._execute_with_session(_update)
+            new_id: UUID = result.scalar_one()
+            return new_id
 
+        return await self._execute_with_session(_put)
+
+    async def put_user_returning_dto(self, user: UserDTO) -> UserDTO:
+        """
+        вставляет пользователя и возвращает полностью заполненный DTO
+        """
+        async def _put(session: AsyncSession) -> UserDTO:
+            stmt = (
+                insert(User)
+                .values(**user.to_create_kwargs())
+                .returning(*User.__table__.columns)
+            )
+            row = (await session.execute(stmt)).mappings().one()
+            return UserDTO.model_validate(dict(row))
+
+        return await self._execute_with_session(_put)
+
+    async def update_user_info(
+        self,
+        id: Union[UUID, str],
+        *,
+        education: Optional[str] = None,
+        experience_years: Optional[int] = None,
+        experience_months: Optional[int] = None,
+        experience_description: Optional[str] = None,
+        hard_skills: Optional[List[str]] = None,
+    ) -> UserDTO:
+        """
+        частичное обновление. Обновляются только поля, переданные не None
+        возвращает обновлённый UserDTO, если пользователь не найден — 404.
+        """
+        async def _update(session: AsyncSession) -> UserDTO:
+            vid = normalize_uuid(id)
+            values: Dict[str, Any] = {}
+
+            if education is not None:
+                values["education"] = education
+            if experience_years is not None:
+                values["experience_years"] = experience_years
+            if experience_months is not None:
+                values["experience_months"] = experience_months
+            if experience_description is not None:
+                values["experience_description"] = experience_description
+            if hard_skills is not None:
+                values["hard_skills"] = hard_skills
+
+            if not values:
+                stmt = (
+                    update(User)
+                    .where(User.id == vid)
+                    .values({})
+                    .returning(*User.__table__.columns)
+                )
+            else:
+                stmt = (
+                    update(User)
+                    .where(User.id == vid)
+                    .values(**values)
+                    .returning(*User.__table__.columns)
+                )
+
+            result = await session.execute(stmt)
+            row = result.mappings().one_or_none()
+            if row is None:
+                raise HTTPException(status_code=404, detail="User not found")
+
+            return UserDTO.model_validate(dict(row))
+
+        return await self._execute_with_session(_update)
+    
+    
 user_repository = UserRepository()
