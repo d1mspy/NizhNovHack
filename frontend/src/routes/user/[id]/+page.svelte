@@ -9,11 +9,13 @@
   }
 
   function goToCareerConsultant() {
-    goto('/career-chat');
+    const id = get(page).params.id;
+    goto(`/career-chat/${id}`);
   }
 
   function goToCareerProspects() {
-    goto('/career-prospects');
+    const id = get(page).params.id;
+    goto(`/career-prospects/${id}`);
   }
 </script>
 

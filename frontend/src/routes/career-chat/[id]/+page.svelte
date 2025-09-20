@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { get } from 'svelte/store';
 
   interface Message {
     id: number;
@@ -15,7 +17,8 @@
   let nextId = 1;
 
   function goBack() {
-    goto('/user');
+    const id = get(page).params.id;
+    goto(`/user/${id}`);
   }
 
   function scrollToBottom() {
@@ -175,11 +178,26 @@
         disabled={!userInput.trim() || isLoading}
         class="send-button"
         title="Отправить сообщение"
+        aria-label="Отправить сообщение"
+        type="button"
       >
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-          <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          aria-hidden="true"
+        >
+          <path
+            d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
       </button>
+
     </div>
   </div>
 </div>
