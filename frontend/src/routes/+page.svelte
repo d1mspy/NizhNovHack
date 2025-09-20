@@ -10,12 +10,12 @@
     }
   };
 
-  const goToEmployeePage = async (): Promise<void> => {
+  const goToRegisterPage = async (): Promise<void> => {
     try {
-      await goto('/employee');
+      await goto('/registration');
     } catch (error) {
       console.error('Navigation error:', error);
-      window.location.href = '/employee';
+      window.location.href = '/registration';
     }
   };
 </script>
@@ -37,7 +37,7 @@
         </div>
       </button>
       
-      <button class="role-btn employee-btn" on:click={goToEmployeePage}>
+      <button class="role-btn employee-btn" on:click={goToRegisterPage}>
         <div class="btn-content">
           <span class="btn-icon">👤</span>
           <span class="btn-text">Работник</span>

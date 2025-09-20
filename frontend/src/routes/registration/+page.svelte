@@ -1,7 +1,16 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
 
-  let formData = {
+  type Sex = 'male' | 'female' | '';
+  type FormDataT = {
+    firstName: string;
+    lastName: string;
+    gender: Sex;
+    birthDate: string; // 'YYYY-MM-DD'
+    position: string;
+  };
+
+  let formData: FormDataT = {
     firstName: '',
     lastName: '',
     gender: '',
@@ -14,8 +23,14 @@
     lastName: '',
     gender: '',
     birthDate: '',
-    position: ''
+    position: '',
+    submit: ''
   };
+
+  let loading = false;
+
+  const uuidRe =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   const validateForm = (): boolean => {
     let isValid = true;
@@ -24,7 +39,8 @@
       lastName: '',
       gender: '',
       birthDate: '',
-      position: ''
+      position: '',
+      submit: ''
     };
 
     if (!formData.firstName.trim()) {
@@ -46,9 +62,12 @@
       errors.birthDate = 'Дата рождения обязательна';
       isValid = false;
     } else {
-      const birthDate = new Date(formData.birthDate);
-      const today = new Date();
-      const age = today.getFullYear() - birthDate.getFullYear();
+      // базовая проверка формата даты
+      const d = new Date(formData.birthDate);
+      if (Number.isNaN(d.getTime())) {
+        errors.birthDate = 'Некорректная дата';
+        isValid = false;
+      }
     }
 
     if (!formData.position.trim()) {
@@ -60,15 +79,48 @@
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (validateForm()) {
-      // Здесь можно добавить сохранение данных или API запрос
-      console.log('Данные формы:', formData);
-      
-      try {
-        await goto('/user');
-      } catch (error) {
-        console.error('Navigation error:', error);
+    if (!validateForm() || loading) return;
+
+    loading = true;
+    errors.submit = '';
+
+    // маппинг в snake_case под бэкенд
+    const payload = {
+      first_name: formData.firstName.trim(),
+      last_name: formData.lastName.trim(),
+      sex: formData.gender, // 'male' | 'female'
+      birth_date: formData.birthDate, // 'YYYY-MM-DD' из <input type="date">
+      current_position: formData.position.trim()
+    };
+
+    try {
+      const res = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        // попытаемся вытащить текст ошибки
+        const errText = await res.text().catch(() => '');
+        throw new Error(errText || `Ошибка запроса: ${res.status}`);
       }
+
+      // ответ — НЕ json, а строка с uuid (возможны кавычки)
+      const raw = (await res.text()).trim();
+      const id = raw.replace(/^"(.+)"$/, '$1'); // убираем кавычки, если FastAPI вернул JSON-строку
+
+      if (!uuidRe.test(id)) {
+        throw new Error(`Некорректный идентификатор пользователя: ${raw}`);
+      }
+
+      await goto(`/user/${id}`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Неизвестная ошибка';
+      console.error('Registration error:', e);
+      errors.submit = msg;
+    } finally {
+      loading = false;
     }
   };
 
@@ -80,6 +132,7 @@
     goto('/login');
   }
 </script>
+
 
 <svelte:head>
   <title>Регистрация - HR Консультант</title>
@@ -170,9 +223,13 @@
 
       <button class="login-btn" on:click={goToLogin}>Уже есть аккаунт? Войдите</button>
 
-      <button type="submit" class="submit-btn">
-        Зарегистрироваться
+      <button type="submit" class="submit-btn" disabled={loading}>
+        {loading ? 'Отправка…' : 'Зарегистрироваться'}
       </button>
+
+      {#if errors.submit}
+        <span class="error-text">{errors.submit}</span>
+      {/if}
     </form>
   </div>
 </div>

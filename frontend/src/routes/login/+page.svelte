@@ -8,15 +8,18 @@
 
   let errors = {
     firstName: '',
-    lastName: ''
+    lastName: '',
+    submit: ''
   };
+
+  let loading = false;
+
+  const uuidRe =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
   const validateForm = (): boolean => {
     let isValid = true;
-    errors = {
-      firstName: '',
-      lastName: ''
-    };
+    errors = { firstName: '', lastName: '', submit: '' };
 
     if (!formData.firstName.trim()) {
       errors.firstName = 'Имя обязательно';
@@ -32,15 +35,42 @@
   };
 
   const handleSubmit = async (): Promise<void> => {
-    if (validateForm()) {
-      // Здесь можно добавить сохранение данных или API запрос
-      console.log('Данные формы:', formData);
-      
-      try {
-        await goto('/user');
-      } catch (error) {
-        console.error('Navigation error:', error);
+    if (!validateForm() || loading) return;
+
+    loading = true;
+    errors.submit = '';
+
+    const payload = {
+      first_name: formData.firstName.trim(),
+      last_name: formData.lastName.trim()
+    };
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(errText || `Ошибка запроса: ${res.status}`);
       }
+
+      const raw = (await res.text()).trim();
+      const id = raw.replace(/^"(.+)"$/, '$1');
+
+      if (!uuidRe.test(id)) {
+        throw new Error(`Некорректный идентификатор: ${raw}`);
+      }
+
+      await goto(`/user/${id}`);
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : 'Неизвестная ошибка';
+      console.error('Login error:', e);
+      errors.submit = msg;
+    } finally {
+      loading = false;
     }
   };
 
@@ -48,6 +78,7 @@
     goto('/');
   };
 </script>
+
 
 <svelte:head>
   <title>Логин - HR Консультант</title>
@@ -89,9 +120,12 @@
         {/if}
       </div>
 
-      <button type="submit" class="submit-btn">
-        Войти
+      <button type="submit" class="submit-btn" disabled={loading}>
+        {loading ? 'Входим…' : 'Войти'}
       </button>
+      {#if errors.submit}
+        <span class="error-text">{errors.submit}</span>
+      {/if}
     </form>
   </div>
 </div>
