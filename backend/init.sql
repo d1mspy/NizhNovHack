@@ -27,3 +27,23 @@ CREATE TABLE "user"(
     updated_at TIMESTAMP NOT NULL
 );
 
+CREATE TABLE vacancy(
+    id UUID PRIMARY KEY,
+
+    name TEXT NOT NULL,
+    description TEXT NOT NULL,
+
+    min_exp_months SMALLINT,
+    max_exp_months SMALLINT,
+    CHECK (
+      min_exp_months IS NULL
+      OR max_exp_months IS NULL
+      OR min_exp_months <= max_exp_months
+    ),
+
+    must_have TEXT[] NOT NULL DEFAULT '{}',
+    nice_to_have TEXT[] NOT NULL DEFAULT '{}',
+
+    created_at TIMESTAMP NOT NULL,
+    updated_at TIMESTAMP NOT NULL
+);

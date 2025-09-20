@@ -55,3 +55,23 @@ class User(Base, WithId, With_created_at, With_updated_at):
                         name="ck_user_experience_months"),
         {"extend_existing": True},
     )
+    
+class Vacancy(Base, WithId, With_created_at, With_updated_at):
+    __tablename__ = "vacancy"
+    
+    name = Column(Text, nullable=False)
+    description = Column(Text, nullable=False)
+    
+    min_exp_months = Column(SmallInteger, nullable=True)
+    max_exp_months = Column(SmallInteger, nullable=True)
+    
+    must_have = Column(ARRAY(Text), nullable=False, server_default=text("'{}'::text[]"))
+    nice_to_have = Column(ARRAY(Text), nullable=False, server_default=text("'{}'::text[]"))
+
+    __table_args__ = tuple(
+        CheckConstraint(
+            "(min_exp_months IS NULL) OR (max_exp_months IS NULL) "
+            "OR (min_exp_months <= max_exp_months)",
+            name="vacancy_min_max_check",
+        )
+    )
