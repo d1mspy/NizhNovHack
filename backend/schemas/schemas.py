@@ -113,10 +113,30 @@ class UserDTO(BaseModel):
             "hard_skills": self.hard_skills,
         }
         
+    def to_plain_dict(
+        self,
+        *,
+        exclude_none: bool = False,
+        json_mode: bool = True,
+        by_alias: bool = False,
+    ) -> dict:
+        """
+        словарь без служебных полей
+        json_mode=True -> enum в строки, даты в ISO
+        """
+        exclude = {"id", "created_at", "updated_at", "experience_total_months"}
+        return self.model_dump(
+            exclude=exclude,
+            exclude_none=exclude_none,
+            by_alias=by_alias,
+            mode="json" if json_mode else "python",
+        )
+        
 class MatchResultDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     decision: bool = False
+    vacancy: VacancyDTO | None = None
     total: float = Field(..., ge=0.0, le=1.0, description="Aggregated score in [0,1]")
     breakdown: Dict[str, float] = Field(default_factory=dict, description="Per-metric scores in [0,1]")
     details: Dict[str, Any] = Field(default_factory=dict, description="Debug/trace info (matches, tokens, etc.)")

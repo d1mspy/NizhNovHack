@@ -1,8 +1,9 @@
-from openai import OpenAI
+from openai import AsyncOpenAI
 from pydantic import BaseModel
 import json
 from typing import Dict
 
+from config.config import AI_API_KEY
 from .utils.prepare_profile import get_text_profile
 from .utils.prompts import user_matching_prompt, system_hr_matching_prompt, system_user_matching_prompt
 
@@ -15,7 +16,7 @@ class MatchAns(BaseModel):
 
 class LLMAnalizer:
     def __init__(self, api_key: str):
-        self.llm_client = OpenAI(api_key=api_key, base_url="https://llm.t1v.scibox.tech/v1")
+        self.llm_client = AsyncOpenAI(api_key=api_key, base_url="https://llm.t1v.scibox.tech/v1")
         self.model_name = "Qwen2.5-72B-Instruct-AWQ"
         self.tools = [
             {
@@ -28,7 +29,7 @@ class LLMAnalizer:
             }
         ]
     
-    def match(self, user_profile: Dict, is_user: bool, vacancy: str) -> MatchAns:
+    async def match(self, user_profile: Dict, is_user: bool, vacancy: str) -> MatchAns:
         text_profile = get_text_profile(user_profile)
         user_prompt = user_matching_prompt.format(profile=text_profile, vacancy=vacancy)
         if is_user:
@@ -37,7 +38,7 @@ class LLMAnalizer:
             system_prompt = system_hr_matching_prompt
 
         try:
-            response = self.llm_client.chat.completions.create(
+            response = await self.llm_client.chat.completions.create(
                     model=self.model_name,
                     messages=[
                         {"role": "system", "content": system_prompt},
@@ -59,3 +60,5 @@ class LLMAnalizer:
             print(f"Ошибка при получении ответа: {e}")
 
         return None
+
+analyzer = LLMAnalizer(AI_API_KEY)

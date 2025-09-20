@@ -3,9 +3,9 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import List, Annotated
 from uuid import UUID
 
+from ai_services.matcher import analyzer
 from schemas.schemas import VacancyDTO, UserDTO
-from services.parsing_service import ParsingService
-from repositories.db.vacancy_repository import vacancy_repository
+from services.parsing_service import parsing_service
 from services.user_service import user_service
 from services.matching_service import matching_service
 from infrastructure.db.connect import sync_create_tables 
@@ -27,8 +27,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-parsing_service = ParsingService(vacancy_repository)
 
 @app.get("/")
 async def test_endpoint() -> str:
@@ -96,4 +94,15 @@ async def update_user_info(user: UserDTO, id: str = Path(...)) -> UserDTO:
 @app.put("/{user_id}/matching")
 async def match(user_id: str = Path(...)):
     results = await matching_service.match(user_id)
-    return results
+    resps = []
+    for res in results:
+        if res.decision:
+            profile = await matching_service.get_user_dict(user_id)
+            resp = await analyzer.match(
+                user_profile=profile, 
+                is_user=False, 
+                vacancy=res.vacancy.description
+            )
+            resps.append(resp)
+    
+    return resps

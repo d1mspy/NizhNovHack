@@ -4,6 +4,7 @@ from repositories.db.vacancy_repository import VacancyRepository
 from utils.docx_extract import pdf_to_txt_via_docx
 from utils.txt_parse import parse_vacancy_text
 from schemas.schemas import VacancyDTO
+from repositories.db.vacancy_repository import vacancy_repository
 
 class ParsingService():
     def __init__(self, repository: VacancyRepository):
@@ -41,3 +42,5 @@ class ParsingService():
     async def delete_vacancy(self, id: str) -> bool:
         ok = await self.repository.delete_vacancy(id)
         return ok
+    
+parsing_service = ParsingService(vacancy_repository)
