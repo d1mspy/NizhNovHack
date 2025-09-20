@@ -2,6 +2,7 @@ import json
 from typing import List, Dict, Optional
 
 from .utils.career_agent import CareerAgent
+from config.config import AI_API_KEY
 
 class AICareerService:
     def __init__(self, api_key, max_history_length: int = 10):
@@ -109,3 +110,5 @@ class AICareerService:
         """
         if user_id in self.dialog_history:
             del self.dialog_history[user_id] 
+
+ai_service = AICareerService(api_key = AI_API_KEY)

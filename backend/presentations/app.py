@@ -53,6 +53,7 @@ async def add_vacancy(name: Annotated[str, Form(...)], vacancy: UploadFile = Fil
     dto = await parsing_service.add_vacancy(vac_bytes, name)
     return dto
 
+
 @app.get("/vacancy")
 async def get_vacancy_list() -> List[VacancyDTO]:
     """
@@ -72,7 +73,17 @@ async def delete_vacancy(id: str = Path(...)) -> None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="failed to delete vacancy")
     
-
+@app.post("/chat/{id}")
+async def chat(message:str, id: str = Path(...)) -> str:
+    """
+    удаление вакансии
+    """
+    answer = await user_service.chat_llm(id=id, text_message=message)
+    if not answer:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                            detail="failed to give answer")
+    return answer
+    
 @app.post("/register")
 async def register(user: UserDTO) -> UUID:
     user_id = await user_service.put_user(user)
