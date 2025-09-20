@@ -1,9 +1,10 @@
 from openai import OpenAI
 from pydantic import BaseModel
 import json
+from typing import Dict
 
 from .utils.prepare_profile import get_text_profile
-from .utils.prompts import user_matching_prompt, system_matching_prompt
+from .utils.prompts import user_matching_prompt, system_hr_matching_prompt, system_user_matching_prompt
 
 
 class MatchAns(BaseModel):
@@ -27,21 +28,25 @@ class LLMAnalizer:
             }
         ]
     
-    def match(self, user_profile, vacancy: str) -> MatchAns:
+    def match(self, user_profile: Dict, is_user: bool, vacancy: str) -> MatchAns:
         text_profile = get_text_profile(user_profile)
         user_prompt = user_matching_prompt.format(profile=text_profile, vacancy=vacancy)
+        if is_user:
+            system_prompt = system_user_matching_prompt
+        else:
+            system_prompt = system_hr_matching_prompt
 
         try:
             response = self.llm_client.chat.completions.create(
                     model=self.model_name,
                     messages=[
-                        {"role": "system", "content": system_matching_prompt},
+                        {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
                     tools=self.tools,
                     tool_choice={"type": "function", "function": {"name": "analyze_match"}},
-                    temperature=0.1,
-                    max_tokens=4000
+                    temperature=0,
+                    max_tokens=5000
                 )
             if (response.choices[0].message.tool_calls and 
                 len(response.choices[0].message.tool_calls) > 0):

@@ -27,16 +27,12 @@ class AICareerService:
         Returns:
             Ответ ИИ-агента в виде текста
         """
-        # Добавляем сообщение пользователя в историю
         self._add_to_history(user_id, "user", message)
         
-        # Получаем историю диалога в формате JSON
         history_json = self._get_history_json(user_id)
         
-        # Получаем ответ от ИИ-агента (заглушка - нужно заменить на реальный вызов)
         ai_response = await self._call_ai_agent(history_json)
         
-        # Добавляем ответ ассистента в историю
         self._add_to_history(user_id, "assistant", ai_response)
         
         return ai_response
@@ -53,13 +49,11 @@ class AICareerService:
         if user_id not in self.dialog_history:
             self.dialog_history[user_id] = []
         
-        # Добавляем сообщение
         self.dialog_history[user_id].append({
             "role": role,
             "content": content
         })
         
-        # Ограничиваем длину истории
         if len(self.dialog_history[user_id]) > self.max_history_length:
             self.dialog_history[user_id] = self.dialog_history[user_id][-self.max_history_length:]
     
