@@ -174,3 +174,7 @@ cython_debug/
 .pypirc
 
 data/
+
+dockerfile
+
+docker-compose
