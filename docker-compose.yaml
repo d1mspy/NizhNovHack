@@ -16,7 +16,20 @@ services:
       test: ["CMD-SHELL", "pg_isready -U ${APP_PG__USER} -d ${APP_PG__DATABASE}"]
       interval: 5s
       timeout: 5s
-      retries: 20  # Увеличьте количество попыток
+      retries: 20
+
+  nginx:
+    image: nginx:1.25.4-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf
+
+    depends_on:
+      - backend
+      - frontend
+    networks:
+       - devnet
 
   backend:
     env_file: .env
@@ -27,7 +40,14 @@ services:
       - "8000:8000"
     depends_on:
       postgres:
-        condition: service_healthy  # Ждем пока БД станет здоровой
+        condition: service_healthy
+    networks:
+      - devnet
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
     networks:
       - devnet
 
