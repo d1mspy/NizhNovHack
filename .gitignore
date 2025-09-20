@@ -175,6 +175,8 @@ cython_debug/
 
 data/
 
-dockerfile
+Dockerfile
 
-docker-compose
+docker-compose.Max.yaml
+
+db/connect
