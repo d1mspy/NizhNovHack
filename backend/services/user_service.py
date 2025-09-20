@@ -27,6 +27,7 @@ class UserService:
     async def start_chat_llm(self, id):
         ai_service.clear_history(user_id=id)
         user_info = await self.repository.get_user_by_id(id=id)
-        user_info_one_line = await user_to_single_line(user_info)
+        user_info_one_line = "Ты hr помощник, твоя задача помочь человеку с выбором профессии, ты получишь о нем краткую информацию, помоги ему стать лучшим специалистом"
+        user_info_one_line += await user_to_single_line(user_info)
         return await ai_service.process_message(user_id=id, message=user_info_one_line)
 user_service = UserService()

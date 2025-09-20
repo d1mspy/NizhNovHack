@@ -2,7 +2,7 @@ from repositories.db.vacancy_repository import VacancyRepository, vacancy_reposi
 from repositories.db.user_repository import UserRepository, user_repository
 from matcher.config import MatcherConfig
 from matcher.scorer import compute_match
-from schemas.schemas import MatchResultDTO, MatchResult
+from schemas.schemas import MatchResultDTO, MatchResult, UserDTO
 from typing import List
 
 cfg = MatcherConfig()
@@ -22,9 +22,15 @@ class MatchingService:
             decision = _validate_res(res)
             dto = MatchResultDTO.model_validate(res)
             dto.decision = decision
+            dto.vacancy = vac
             results.append(dto)
             
         return results
+    
+    async def get_user_dict(self, user_id: str) -> dict:
+        user = await user_repository.get_user_by_id(user_id)
+        user_dict = user.to_plain_dict()
+        return user_dict
             
 def _validate_res(res: MatchResult) -> bool:
     score = res.total
