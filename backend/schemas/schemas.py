@@ -148,6 +148,10 @@ class MatchResultDTO(BaseModel):
                 raise ValueError(f"breakdown[{k}] must be in [0,1], got {v}")
         return self
     
+class UserLogin(BaseModel):
+    first_name: str
+    last_name: str
+    
 class SexEnum(enum.Enum):
     male = "male"
     female = "female"

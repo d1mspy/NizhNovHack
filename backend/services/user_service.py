@@ -1,7 +1,8 @@
 from uuid import UUID
+from typing import Tuple
 
 from repositories.db.user_repository import user_repository
-from schemas.schemas import UserDTO
+from schemas.schemas import UserDTO, UserLogin
 from ai_services.career import ai_service
 from typing import List
 from utils.concatination import user_to_single_line
@@ -12,6 +13,9 @@ class UserService:
         
     async def put_user(self, user: UserDTO) -> UUID:
         return await self.repository.put_user(user)
+    
+    async def check_user(self, user: UserLogin) -> Tuple[bool, UUID]:
+        return await user_repository.exists_by_full_name(user.first_name, user.last_name)
     
     async def get_all_users(self) -> List[UserDTO]:
         return await self.repository.get_all_users()
@@ -34,4 +38,5 @@ class UserService:
         user_info_one_line = "Ты hr помощник, твоя задача помочь человеку с выбором профессии, ты получишь о нем краткую информацию, помоги ему стать лучшим специалистом"
         user_info_one_line += await user_to_single_line(user_info)
         return await ai_service.process_message(user_id=id, message=user_info_one_line)
+    
 user_service = UserService()
