@@ -74,7 +74,7 @@ async def delete_vacancy(id: str = Path(...)) -> None:
 @app.post("/chat/{id}")
 async def chat(message:str, id: str = Path(...)) -> str:
     """
-    удаление вакансии
+    отправка сообщений в чат
     """
     answer = await user_service.chat_llm(id=id, text_message=message)
     if not answer:
@@ -85,7 +85,7 @@ async def chat(message:str, id: str = Path(...)) -> str:
 @app.post("/start_chat/{id}")
 async def start_chat(id: str = Path(...)) -> str:
     """
-    удаление вакансии
+    начало чата с моделькой
     """
     answer = await user_service.start_chat_llm(id=id)
     if not answer:
