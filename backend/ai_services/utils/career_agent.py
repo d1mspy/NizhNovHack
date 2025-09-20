@@ -10,8 +10,7 @@ class CareerAgent:
         self.llm_client = AsyncOpenAI(api_key=api_key, base_url="https://llm.t1v.scibox.tech/v1")
         self.model_name = "Qwen2.5-72B-Instruct-AWQ"
     
-    async def get_response(self, json_history):
-        message_history = json.loads(json_history)
+    async def get_response(self, message_history):
 
         response = await self.llm_client.chat.completions.create(
                     model=self.model_name,
