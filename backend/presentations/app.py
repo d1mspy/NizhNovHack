@@ -1,6 +1,6 @@
-from fastapi import FastAPI, UploadFile, File, Path, HTTPException, status
+from fastapi import FastAPI, UploadFile, File, Path, HTTPException, status, Form
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List
+from typing import List, Annotated
 
 from schemas.schemas import VacancyDTO
 from services.parsing_service import ParsingService
@@ -31,8 +31,8 @@ async def test_endpoint() -> str:
     """
     return "ok"
 
-@app.post("/vacancy/{name}")
-async def add_vacancy(vacancy: UploadFile = File(...), name: str = Path(...)) -> VacancyDTO:
+@app.post("/vacancy")
+async def add_vacancy(name: Annotated[str, Form(...)], vacancy: UploadFile = File(...)) -> VacancyDTO:
     """
     парсинг вакансии и добавление в базу данных
     """
