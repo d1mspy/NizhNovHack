@@ -1,7 +1,6 @@
 from fastapi import FastAPI, UploadFile, File, Path, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from typing import List
-
 from schemas.schemas import VacancyDTO
 from services.parsing_service import ParsingService
 from repositories.db.vacancy_repository import VacancyRepository
