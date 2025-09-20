@@ -29,11 +29,10 @@ class AICareerService:
             Ответ ИИ-агента в виде текста
         """
         self._add_to_history(user_id, "user", message)
-        
-        history_json = self._get_history_json(user_id)
-        
-        ai_response = await self._call_ai_agent(history_json)
-        
+        history = self.get_history(user_id)
+
+        ai_response = await self._call_ai_agent(history)
+
         self._add_to_history(user_id, "assistant", ai_response)
         
         return ai_response
@@ -59,49 +58,20 @@ class AICareerService:
             self.dialog_history[user_id] = self.dialog_history[user_id][-self.max_history_length:]
     
     def _get_history_json(self, user_id: str) -> str:
-        """
-        Получение истории диалога в формате JSON
-        
-        Args:
-            user_id: идентификатор пользователя
-            
-        Returns:
-            История диалога в формате JSON
-        """
+
         history = self.dialog_history.get(user_id, [])
         return json.dumps(history, ensure_ascii=False, indent=2)
     
-    async def _call_ai_agent(self, history_json: str) -> str:
-        """
-        Вызов ИИ-агента с историей диалога
-        
-        Args:
-            history_json: история диалога в формате JSON
-            
-        Returns:
-            Ответ ИИ-агента
-        """
-        return await self.career_agent.get_response(history_json)
+    async def _call_ai_agent(self, history: str) -> str:
+
+        return await self.career_agent.get_response(history)
     
     def get_history(self, user_id: str) -> List[Dict]:
-        """
-        Получение истории диалога для пользователя
-        
-        Args:
-            user_id: идентификатор пользователя
-            
-        Returns:
-            История диалога в виде списка сообщений
-        """
+
         return self.dialog_history.get(user_id, [])
     
     def clear_history(self, user_id: str):
-        """
-        Очистка истории диалога для пользователя
-        
-        Args:
-            user_id: идентификатор пользователя
-        """
+
         if user_id in self.dialog_history:
             del self.dialog_history[user_id] 
 

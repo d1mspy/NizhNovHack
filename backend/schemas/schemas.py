@@ -26,6 +26,17 @@ class VacancyDTO(BaseModel):
                 raise ValueError("min_exp_months cannot be greater than max_exp_months")
         return self
     
+
+class Skills(BaseModel):
+    level: Optional[int] = None
+    discipline: Optional[int] = None
+    focus: Optional[int] = None
+    speed: Optional[int] = None
+    flexibility: Optional[int] = None
+    multiclass: Optional[int] = None
+    experience: Optional[int] = None
+    
+    
 class UserDTO(BaseModel):
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
