@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { marked } from 'marked';
+  import DOMPurify from 'dompurify';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -16,6 +18,12 @@
   let isLoading = false;
   let nextId = 1;
 
+  function renderMarkdown(raw: string): string {
+    const withNewlines = raw.replace(/\\n/g, '\n');
+    const html = marked.parse(withNewlines) as string; // без устаревших опций
+    return DOMPurify.sanitize(html);
+  }
+
   function goBack() {
     const id = get(page).params.id;
     goto(`/user/${id}`);
@@ -23,47 +31,71 @@
 
   function scrollToBottom() {
     setTimeout(() => {
-      const container = document.querySelector('.messages-container');
-      if (container) {
-        container.scrollTop = container.scrollHeight;
-      }
-    }, 100);
+      const container = document.querySelector('.messages-container') as HTMLDivElement | null;
+      if (container) container.scrollTop = container.scrollHeight;
+    }, 0);
   }
 
-  function sendMessage() {
+  async function sendMessage() {
     if (!userInput.trim() || isLoading) return;
-    console.log('Sending message:', userInput);
 
-    // Сообщение пользователя
+    const id = get(page).params.id;
+    
+    // 1) Добавляем сообщение пользователя
+    const textToSend = userInput.trim();
+    console.log('[chat] sendMessage start', { id, textToSend });
     const userMessage: Message = {
       id: nextId++,
-      text: userInput.trim(),
+      text: textToSend,
       isUser: true,
       timestamp: new Date()
     };
-
     messages = [...messages, userMessage];
-    const currentInput = userInput;
+
+    // 2) Готовим отправку
     userInput = '';
     isLoading = true;
-
     scrollToBottom();
 
-    // Имитация ответа AI
-    setTimeout(() => {
-      console.log('AI response');
+    try {
+      const res = await fetch(`/api/chat/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: textToSend })
+      });
+
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(errText || `Ошибка запроса: ${res.status}`);
+      }
+
+      // 3) Ответ — просто строка (возможны кавычки)
+      const raw = (await res.text()).trim();
+      const reply = raw.replace(/^"(.+)"$/, '$1');
+
       const aiResponse: Message = {
         id: nextId++,
-        text: `Я получил ваше сообщение: "${currentInput}". Чем могу помочь в вопросах карьеры?`,
+        text: reply,      // markdown рендерится ниже через renderMarkdown
         isUser: false,
         timestamp: new Date()
       };
 
       messages = [...messages, aiResponse];
+    } catch (e) {
+      const err = e instanceof Error ? e.message : 'Неизвестная ошибка';
+      const fallback: Message = {
+        id: nextId++,
+        text: `⚠️ Не удалось получить ответ: ${err}`,
+        isUser: false,
+        timestamp: new Date()
+      };
+      messages = [...messages, fallback];
+    } finally {
       isLoading = false;
       scrollToBottom();
-    }, 1500);
+    }
   }
+
 
   function handleKeyPress(event: KeyboardEvent) {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -79,9 +111,27 @@
   }
 
   onMount(() => {
+    const id = get(page).params.id;
+    const key = `chatInit:${id}`;
+    const greeting = sessionStorage.getItem(key);
+
+    if (greeting) {
+      messages = [
+        ...messages,
+        {
+          id: nextId++,
+          text: greeting,
+          isUser: false,
+          timestamp: new Date()
+        }
+      ];
+      sessionStorage.removeItem(key); // чтобы не показывать повторно при F5/навигации назад
+    }
+
     scrollToBottom();
   });
 </script>
+
 
 <svelte:head>
   <title>AI чат - HR Консультант</title>
@@ -131,7 +181,9 @@
             {/if}
           </div>
           <div class="message-content">
-            <div class="message-text">{message.text}</div>
+            <div class="message-text markdown">
+              {@html message.isUser ? renderMarkdown(message.text) : renderMarkdown(message.text)}
+            </div>
             <div class="message-time">
               {message.timestamp.toLocaleTimeString('ru-RU', { 
                 hour: '2-digit', 
@@ -472,6 +524,25 @@
   .send-button svg {
     width: 16px;
     height: 16px;
+  }
+
+  .markdown {
+    white-space: normal; /* markdown сам управляет переносами */
+    line-height: 1.55;
+  }
+  .markdown h1, .markdown h2, .markdown h3 {
+    margin: 0.4em 0 0.3em;
+    font-weight: 700;
+  }
+  .markdown h1 { font-size: 1.25rem; }
+  .markdown h2 { font-size: 1.125rem; }
+  .markdown h3 { font-size: 1rem; }
+  .markdown p { margin: 0.4em 0; }
+  .markdown ul, .markdown ol { margin: 0.4em 0 0.4em 1.2em; }
+  .markdown li { margin: 0.2em 0; }
+  .markdown strong { font-weight: 700; }
+  .markdown code {
+    background: #f3f4f6; border: 1px solid #e5e7eb; padding: 0.1em 0.3em; border-radius: 4px;
   }
 
   @keyframes typing {
