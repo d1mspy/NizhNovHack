@@ -4,7 +4,7 @@ from typing import List, Annotated
 from uuid import UUID
 
 from ai_services.matcher import analyzer
-from schemas.schemas import VacancyDTO, UserDTO
+from schemas.schemas import VacancyDTO, UserDTO, UserLogin
 from services.parsing_service import parsing_service
 from services.user_service import user_service
 from services.matching_service import matching_service
@@ -51,7 +51,6 @@ async def add_vacancy(name: Annotated[str, Form(...)], vacancy: UploadFile = Fil
     dto = await parsing_service.add_vacancy(vac_bytes, name)
     return dto
 
-
 @app.get("/vacancy")
 async def get_vacancy_list() -> List[VacancyDTO]:
     """
@@ -59,7 +58,6 @@ async def get_vacancy_list() -> List[VacancyDTO]:
     """
     data = await parsing_service.get_vacancy_list()
     return data
-
 
 @app.delete("/vacancy/{id}")
 async def delete_vacancy(id: str = Path(...)) -> None:
@@ -70,7 +68,7 @@ async def delete_vacancy(id: str = Path(...)) -> None:
     if not ok:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="failed to delete vacancy")
-    
+
 @app.post("/chat/{id}")
 async def chat(message:str, id: str = Path(...)) -> str:
     """
@@ -97,6 +95,13 @@ async def start_chat(id: str = Path(...)) -> str:
 async def register(user: UserDTO) -> UUID:
     user_id = await user_service.put_user(user)
     return user_id
+
+@app.post("/login")
+async def login(user: UserLogin) -> UUID:
+    data = await user_service.check_user(user)
+    if not data[0]:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not exists")
+    return data[1]
 
 @app.patch("/user/update/{id}")
 async def update_user_info(user: UserDTO, id: str = Path(...)) -> UserDTO:

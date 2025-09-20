@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Awaitable, Callable, Optional, Union, List, Dict
+from typing import Any, Awaitable, Callable, Optional, Union, List, Dict, Tuple
 from uuid import UUID
 
 from fastapi import HTTPException
@@ -127,6 +127,26 @@ class UserRepository:
             if obj is None:
                 raise HTTPException(status_code=404, detail="User not found")
             return UserDTO.model_validate(obj)
+
+        return await self._execute_with_session(_get)
+    
+    async def exists_by_full_name(
+        self,
+        first_name: str,
+        last_name: str,
+    ) -> Tuple[bool, Optional[UUID]]:
+        async def _get(session: AsyncSession) -> Tuple[bool, Optional[UUID]]:
+            stmt = (
+                select(User.id)
+                .where(
+                    User.first_name == first_name.strip(),
+                    User.last_name == last_name.strip(),
+                )
+                .limit(1)
+            )
+            res = await session.execute(stmt)
+            uid = res.scalar_one_or_none()
+            return (uid is not None, uid)
 
         return await self._execute_with_session(_get)
     
