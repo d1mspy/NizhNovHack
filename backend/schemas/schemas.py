@@ -159,6 +159,9 @@ class MatchingResponse(BaseModel):
     decision: str
     reasoning_report: str
     
+class Message(BaseModel):
+    text: str
+    
 class SexEnum(enum.Enum):
     male = "male"
     female = "female"

@@ -4,7 +4,7 @@ from typing import List, Annotated
 from uuid import UUID
 
 from ai_services.matcher import analyzer
-from schemas.schemas import VacancyDTO, UserDTO, UserLogin, MatchingResponse
+from schemas.schemas import VacancyDTO, UserDTO, UserLogin, MatchingResponse, Message
 from services.parsing_service import parsing_service
 from services.user_service import user_service
 from services.matching_service import matching_service
@@ -69,18 +69,18 @@ async def delete_vacancy(id: str = Path(...)) -> None:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="failed to delete vacancy")
 
-@app.post("/chat/{id}")
-async def chat(message:str, id: str = Path(...)) -> str:
+@app.put("/chat/{id}")
+async def chat(message: Message, id: str = Path(...)) -> str:
     """
     отправка сообщений в чат
     """
-    answer = await user_service.chat_llm(id=id, text_message=message)
+    answer = await user_service.chat_llm(id=id, text_message=message.text)
     if not answer:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="failed to give answer")
     return answer
 
-@app.post("/start_chat/{id}")
+@app.put("/start_chat/{id}")
 async def start_chat(id: str = Path(...)) -> str:
     """
     начало чата с моделькой
