@@ -3,68 +3,84 @@
   import { goto } from '$app/navigation';
 
   interface Vacancy {
-    id: number;
-    title: string;
-    fileName?: string;
+    id: string;
+    name: string;
   }
 
   let vacancies: Vacancy[] = [];
   let vacancyTitle = '';
   let pdfFile: File | null = null;
-  let nextId = 1;
+  let loading = false;
+  let saving = false;
+  let err = '';
 
-  onMount(() => {
-    const savedVacancies = localStorage.getItem('vacancies');
-    const savedNextId = localStorage.getItem('nextId');
-    
-    if (savedVacancies) {
-      vacancies = JSON.parse(savedVacancies);
+  const fetchVacancies = async () => {
+    loading = true; err = '';
+    try {
+      const res = await fetch('/api/vacancy');
+      if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+      vacancies = await res.json();
+    } catch (e) {
+      err = e instanceof Error ? e.message : 'Неизвестная ошибка';
+    } finally {
+      loading = false;
     }
-    
-    if (savedNextId) {
-      nextId = parseInt(savedNextId);
-    }
-  });
+  };
 
-  function addVacancy() {
-    if (!vacancyTitle.trim()) return;
-
-    const newVacancy: Vacancy = {
-      id: nextId++,
-      title: vacancyTitle.trim(),
-      fileName: pdfFile?.name
-    };
-
-    vacancies = [...vacancies, newVacancy];
-    vacancyTitle = '';
-    
-    // Сбрасываем поле файла
-    const fileInput = document.querySelector('.file-input') as HTMLInputElement;
-    if (fileInput) {
-      fileInput.value = '';
-    }
-    pdfFile = null;
-    
-    localStorage.setItem('vacancies', JSON.stringify(vacancies));
-    localStorage.setItem('nextId', nextId.toString());
-  }
-
-  function deleteVacancy(id: number) {
-    vacancies = vacancies.filter(v => v.id !== id);
-    localStorage.setItem('vacancies', JSON.stringify(vacancies));
-  }
+  onMount(fetchVacancies);
 
   function handleFileUpload(event: Event) {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       pdfFile = input.files[0];
+      if (!vacancyTitle.trim()) {
+        const name = pdfFile.name;
+        const dot = name.lastIndexOf('.');
+        vacancyTitle = dot > 0 ? name.slice(0, dot) : name;
+      }
     }
   }
+
+  const addVacancy = async () => {
+    if (!pdfFile) return;
+    const name = vacancyTitle.trim() || (pdfFile ? (pdfFile.name.replace(/\.[^.]+$/, '')) : '');
+    if (!name) return;
+
+    saving = true; err = '';
+    try {
+      const fd = new FormData();
+      fd.append('name', name);
+      fd.append('vacancy', pdfFile);
+      const res = await fetch('/api/vacancy', { method: 'POST', body: fd });
+      if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+      vacancyTitle = '';
+      pdfFile = null;
+      const fileInput = document.querySelector('.file-input') as HTMLInputElement | null;
+      if (fileInput) fileInput.value = '';
+      await fetchVacancies();
+    } catch (e) {
+      err = e instanceof Error ? e.message : 'Неизвестная ошибка';
+    } finally {
+      saving = false;
+    }
+  };
+
+  const deleteVacancy = async (id: string) => {
+    err = '';
+    try {
+      const res = await fetch(`/api/vacancy/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
+      vacancies = vacancies.filter(v => v.id !== id);
+    } catch (e) {
+      err = e instanceof Error ? e.message : 'Неизвестная ошибка';
+    }
+  };
 
   function goToCandidateSearch() {
     goto('/candidates');
   }
 </script>
+
 
 <svelte:head>
   <title>Вакансии - HR Консультант</title>
@@ -107,13 +123,12 @@
 
       <button
         on:click={addVacancy}
-        disabled={!vacancyTitle.trim()}
+        disabled={saving || !pdfFile}
         class="primary-btn"
       >
-        Добавить вакансию
+        {saving ? 'Загружаем…' : 'Добавить вакансию'}
       </button>
     </div>
-
     <!-- Список вакансий -->
     <div class="section-card">
       <div class="section-header">
@@ -126,22 +141,22 @@
           {#each vacancies as vacancy (vacancy.id)}
             <div class="vacancy-item">
               <div class="vacancy-info">
-                <span class="vacancy-title">{vacancy.title}</span>
-                {#if vacancy.fileName}
-                  <span class="file-indicator">PDF</span>
-                {/if}
+                <span class="vacancy-title">{vacancy.name}</span>
               </div>
               <button
                 on:click={() => deleteVacancy(vacancy.id)}
                 class="delete-btn"
                 title="Удалить вакансию"
+                aria-label="Удалить вакансию"
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                   <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                 </svg>
               </button>
             </div>
           {/each}
+            {#if loading}<p>Загружаем список…</p>{/if}
+            {#if err}<p style="color:#b91c1c">{err}</p>{/if}
         </div>
       {:else}
         <div class="empty-state">
@@ -360,15 +375,6 @@
     font-weight: 500;
     color: #1f2937;
     font-size: 16px;
-  }
-
-  .file-indicator {
-    background: #e0f2fe;
-    color: #1DAFF7;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 12px;
-    font-weight: 500;
   }
 
   .delete-btn {
