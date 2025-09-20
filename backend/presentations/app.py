@@ -129,3 +129,7 @@ async def match(user_id: str = Path(...)):
             resps.append(resp)
     
     return resps
+
+@app.get("/user/{id}")
+async def get_user(id: str = Path(...)) -> UserDTO:
+    return await user_service.get_user_by_id(id)

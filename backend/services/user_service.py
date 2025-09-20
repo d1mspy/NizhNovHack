@@ -20,6 +20,9 @@ class UserService:
     async def get_all_users(self) -> List[UserDTO]:
         return await self.repository.get_all_users()
     
+    async def get_user_by_id(self, id: str) -> UserDTO:
+        return await self.repository.get_user_by_id(id)
+    
     async def update_user_info(self, user: UserDTO, id: str) -> UserDTO:
         return await self.repository.update_user_info(
             id, 
