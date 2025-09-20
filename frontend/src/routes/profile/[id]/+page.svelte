@@ -425,6 +425,7 @@
   .back-btn:hover {
     background: #1DAFF7;
     transform: translateY(-2px);
+    color: white;
   }
 
   .back-btn svg {
@@ -589,7 +590,6 @@
   .form-input:focus {
     outline: none;
     border-color: #1DAFF7;
-    box-shadow: 0 0 0 3px rgba(29, 175, 247, 0.1);
   }
 
   .form-textarea {
@@ -607,7 +607,6 @@
   .form-textarea:focus {
     outline: none;
     border-color: #1DAFF7;
-    box-shadow: 0 0 0 3px rgba(29, 175, 247, 0.1);
   }
 
   .experience-container {
