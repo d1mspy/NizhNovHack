@@ -150,26 +150,6 @@ class UserRepository:
 
         return await self._execute_with_session(_get)
     
-    async def exists_by_full_name(
-        self,
-        first_name: str,
-        last_name: str,
-    ) -> Tuple[bool, Optional[UUID]]:
-        async def _get(session: AsyncSession) -> Tuple[bool, Optional[UUID]]:
-            stmt = (
-                select(User.id)
-                .where(
-                    User.first_name == first_name.strip(),
-                    User.last_name == last_name.strip(),
-                )
-                .limit(1)
-            )
-            res = await session.execute(stmt)
-            uid = res.scalar_one_or_none()
-            return (uid is not None, uid)
-
-        return await self._execute_with_session(_get)
-    
     async def get_all_users(self) -> List[UserDTO]:
         async def _get_all(session:AsyncSession) -> List[UserDTO]:
             stmt = select(User)
