@@ -55,18 +55,29 @@ class CareerAdvisorInterface:
             ... ]
             >>> recommendations = await interface.process_conversation_data(messages)
         """
-        # Сохраняем временный файл
-        import tempfile
-        import os
+        # Используем новый метод analyze_messages для прямой работы со списком
+        return await self.career_agent.analyze_messages(messages)
+    
+    async def analyze_messages_direct(self, messages: List[Dict[str, str]]) -> str:
+        """
+        Прямой анализ готового списка сообщений (основной метод).
         
-        with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False, encoding='utf-8') as f:
-            json.dump(messages, f, ensure_ascii=False, indent=2)
-            temp_path = f.name
-        
-        try:
-            return await self.career_agent.analyze_conversation(temp_path)
-        finally:
-            os.unlink(temp_path)
+        Args:
+            messages: Список сообщений в формате [{"role": "user", "message": "..."}]
+            
+        Returns:
+            Финальное рекомендательное сообщение с курсами, статьями и т.д.
+            
+        Example:
+            >>> messages = [
+            ...     {"role": "user", "message": "Хочу стать Python разработчиком"},
+            ...     {"role": "assistant", "message": "Расскажите о вашем опыте"},
+            ...     {"role": "user", "message": "Изучаю Python 6 месяцев"}
+            ... ]
+            >>> recommendations = await interface.analyze_messages_direct(messages)
+            >>> print(recommendations)
+        """
+        return await self.career_agent.analyze_messages(messages)
     
     async def get_user_profile(self, dialog_text: str) -> Dict[str, Any]:
         """
@@ -242,6 +253,30 @@ async def quick_find_resources(skills: List[str], api_key: str) -> Dict[str, Lis
     return await interface.find_resources_for_skills(skills)
 
 
+async def quick_analyze_messages(messages: List[Dict[str, str]], api_key: str) -> str:
+    """
+    Быстрый анализ готового списка сообщений.
+    
+    Args:
+        messages: Список сообщений в формате [{"role": "user", "message": "..."}]
+        api_key: API ключ
+        
+    Returns:
+        Финальное рекомендательное сообщение с курсами, статьями и т.д.
+        
+    Example:
+        >>> messages = [
+        ...     {"role": "user", "message": "Хочу стать Python разработчиком"},
+        ...     {"role": "assistant", "message": "Расскажите о вашем опыте"},
+        ...     {"role": "user", "message": "Изучаю Python 6 месяцев"}
+        ... ]
+        >>> recommendations = await quick_analyze_messages(messages, "your-api-key")
+        >>> print(recommendations)
+    """
+    interface = CareerAdvisorInterface(api_key)
+    return await interface.analyze_messages_direct(messages)
+
+
 # Пример использования
 async def example_usage():
     """Пример использования интерфейса."""
@@ -283,6 +318,7 @@ async def example_usage():
     print(f"Оценка соответствия: {match['score']}/100")
     print(f"Решение: {match['decision']}")
 
-# запуск примера 
+
 if __name__ == "__main__":
+    # Запуск примера
     asyncio.run(example_usage())
