@@ -1,5 +1,7 @@
 from uuid import UUID
 from typing import Tuple
+import json
+import re
 
 from repositories.db.user_repository import user_repository
 from schemas.schemas import UserDTO, UserLogin
@@ -74,12 +76,21 @@ class UserService:
 Возраст можно мягко отразить как:
 
 4.1 ⏳ Опыт эпох — насколько «старый герой» по сравнению с «новичком».
+оценку давай числом от 1 до 10 включительно, где 1 самый низкий показатель, а 10 самый высокий. в случае если значение определить нельзя, ставь минимальное значение(1), только число, никаких дополнительных пояснений не нужно
 
-генерировать ответ строго в формате json, поля следующие: 'level', 'discipline','focus', 'speed', 'flexibility', 'multiclass', 'experience'"""
+генерировать ответ строго в формате json, твой вывод только это: {'level':'...', 'discipline':'...','focus':'...', 'speed':'...', 'flexibility':'...', 'multiclass':'...', 'experience':'...'}, никаких лишних символов знаков маркировок и обозначений"""
         user_info_one_line += await user_to_single_line(user_info)
         answer = await ai_service.process_message(user_id=id, message=user_info_one_line)
         ai_service.clear_history(user_id=id)
-        print(answer)
-        return Skills(dict(answer))
+        
+        json_match = re.search(r'\{[\s\S]*\}', answer)
+        if json_match:
+            json_str = json_match.group()
+            try:
+                json_str = json_str.replace('```json', '').replace('```', '').strip()
+                data_dict = json.loads(json_str)
+                return Skills(**data_dict)
+            except Exception as e:
+                raise Exception(e)
         
 user_service = UserService()

@@ -93,8 +93,8 @@ async def start_chat(id: str = Path(...)) -> str:
 
 @app.get("/generate_skills_by_profile/{id}")
 async def generate_skills(id: str = Path(...)):
-    skills= await user_service.generate_skills()
-    return skills.model_dump_json()
+    skills= await user_service.generate_skills(id=id)
+    return skills
     
 
 @app.get("/get_all_users")
