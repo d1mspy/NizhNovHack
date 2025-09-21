@@ -1,7 +1,6 @@
 import json
 from typing import List, Dict, Optional
 
-from .utils.career_agent import CareerAgent
 from .utils.dialog_analyzer import DialogAnalyzer, DialogAnalysis
 from schemas.schemas import UserDTO
 from config.config import AI_API_KEY
@@ -18,7 +17,7 @@ class AICareerService:
         """
         self.dialog_history: Dict[str, List[Dict]] = {}
         self.max_history_length = max_history_length
-        self.career_agent = CareerAgent(api_key=api_key)
+        self.career_agent = CareerAdvisorInterface(api_key=api_key)
         self.dialog_analyzer = DialogAnalyzer(api_key=api_key)
 
     async def process_message(self, user_id: str, message: str) -> str:
