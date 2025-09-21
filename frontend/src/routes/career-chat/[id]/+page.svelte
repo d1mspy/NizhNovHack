@@ -1,7 +1,7 @@
 <script lang="ts">
   import { marked } from 'marked';
   import DOMPurify from 'dompurify';
-  import { onMount } from 'svelte';
+  import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { get } from 'svelte/store';
@@ -25,6 +25,7 @@
   }
 
   function goBack() {
+    sendAnalHist();              // ⬅️ дергаем перед уходом
     const id = get(page).params.id;
     goto(`/user/${id}`);
   }
@@ -35,6 +36,28 @@
       if (container) container.scrollTop = container.scrollHeight;
     }, 0);
   }
+
+  function analUrl() {
+    const id = get(page).params.id;
+    return `/api/anal_hist/${id}`;
+  }
+
+  function sendAnalHist() {
+    const url = analUrl();
+    try {
+      if ('sendBeacon' in navigator) {
+        // sendBeacon требует payload — шлём пустой Blob
+        const blob = new Blob([], { type: 'text/plain' });
+        navigator.sendBeacon(url, blob);
+      } else {
+        // keepalive позволит завершить запрос во время unload
+        fetch(url, { method: 'POST', keepalive: true }).catch(() => {});
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
 
   async function sendMessage() {
     if (!userInput.trim() || isLoading) return;
@@ -125,10 +148,28 @@
           timestamp: new Date()
         }
       ];
-      sessionStorage.removeItem(key); // чтобы не показывать повторно при F5/навигации назад
+      sessionStorage.removeItem(key);
     }
 
     scrollToBottom();
+
+    const onPageHide = () => sendAnalHist();
+    const onBeforeUnload = () => sendAnalHist();
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') sendAnalHist();
+    };
+
+    window.addEventListener('pagehide', onPageHide);
+    window.addEventListener('beforeunload', onBeforeUnload);
+    document.addEventListener('visibilitychange', onVisibility);
+
+    onDestroy(() => {
+      window.removeEventListener('pagehide', onPageHide);
+      window.removeEventListener('beforeunload', onBeforeUnload);
+      document.removeEventListener('visibilitychange', onVisibility);
+
+      sendAnalHist();
+    });
   });
 </script>
 

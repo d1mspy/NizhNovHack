@@ -1,14 +1,16 @@
 from fastapi import FastAPI, UploadFile, File, Path, HTTPException, status, Form
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Annotated
+from typing import List, Annotated, Dict
 from uuid import UUID
 
 from ai_services.matcher import analyzer
 from schemas.schemas import VacancyDTO, UserDTO, UserLogin, MatchingResponse, Message
 from services.parsing_service import parsing_service
 from services.user_service import user_service
+from ai_services.career import ai_service
 from services.matching_service import matching_service
 from infrastructure.db.connect import sync_create_tables 
+from utils.user_convert import update_user_from_analysis
 
 app = FastAPI(title="Т1 хак",
               docs_url='/docs',
@@ -191,3 +193,13 @@ async def match_new_vac(vac: VacancyDTO):
 @app.get("/user/{id}")
 async def get_user(id: str = Path(...)) -> UserDTO:
     return await user_service.get_user_by_id(id)
+
+@app.post("/anal_hist/{id}")
+async def analyze_history(id: str = Path(...)) -> UserDTO:
+    user = await user_service.get_user_by_id(id)
+    profile = await matching_service.get_user_dict(id)
+    profile["career_expectations"] = ""
+    data = await ai_service.analyze_dialog(id, profile)
+    new_user = update_user_from_analysis(user, data)
+    resp = await user_service.update_user_info(new_user, id)
+    return resp
