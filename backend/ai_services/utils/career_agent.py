@@ -58,7 +58,6 @@ class CareerAgent:
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0.1,
-                max_tokens=4000
             )
             return response.choices[0].message.content
         except Exception as e:
@@ -80,7 +79,6 @@ class CareerAgent:
             model=self.model_name,
             messages=message_history,
             temperature=0.1,
-            max_tokens=4000
         )
         return response.choices[0].message.content
     
