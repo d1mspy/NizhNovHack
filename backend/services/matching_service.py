@@ -2,7 +2,7 @@ from repositories.db.vacancy_repository import VacancyRepository, vacancy_reposi
 from repositories.db.user_repository import UserRepository, user_repository
 from matcher.config import MatcherConfig
 from matcher.scorer import compute_match
-from schemas.schemas import MatchResultDTO, MatchResult, UserDTO
+from schemas.schemas import MatchResultDTO, MatchResult, VacancyDTO
 from typing import List
 
 cfg = MatcherConfig()
@@ -43,6 +43,21 @@ class MatchingService:
             
         return results
     
+    async def new_vacancy_match(self, vac: VacancyDTO) -> List[MatchResultDTO]:
+        users = await self.user_repository.get_all_users()
+        
+        results = []
+        for user in users:
+            res = compute_match(user, vac, cfg)
+            decision = _validate_res(res)
+            dto = MatchResultDTO.model_validate(res)
+            dto.decision = decision
+            dto.vacancy = vac
+            dto.user_id = user.id
+            results.append(dto)
+            
+        return results
+    
     async def get_user_dict(self, user_id: str) -> dict:
         user = await user_repository.get_user_by_id(user_id)
         user_dict = user.to_plain_dict()
@@ -52,6 +67,7 @@ def _validate_res(res: MatchResult) -> bool:
     score = res.score
     if score >= 0.5:
         return True
+    print("reject")
     return False
     
 matching_service = MatchingService(user_repository, vacancy_repository)

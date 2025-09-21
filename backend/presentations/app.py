@@ -166,6 +166,28 @@ async def match(vac_id: str = Path(...)):
     
     return resps
 
+@app.put("/matching/vacancy")
+async def match_new_vac(vac: VacancyDTO):
+    results = await matching_service.new_vacancy_match(vac)
+    resps = []
+    for res in results:
+        if res.decision:
+            profile = await matching_service.get_user_dict(res.user_id)
+            resp = await analyzer.match(
+                user_profile=profile, 
+                is_user=False, 
+                vacancy=res.vacancy.description
+            )
+            feedback = MatchingResponse(
+                score=resp.score,
+                position=profile["current_position"],
+                decision=resp.decision,
+                reasoning_report=resp.reasoning_report
+            )
+            resps.append(feedback)
+    
+    return resps
+
 @app.get("/user/{id}")
 async def get_user(id: str = Path(...)) -> UserDTO:
     return await user_service.get_user_by_id(id)
