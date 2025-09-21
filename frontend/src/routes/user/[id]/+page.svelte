@@ -3,6 +3,8 @@
   import { page } from '$app/stores';
   import { get } from 'svelte/store';
 
+  let isMatching = false; // <- флаг загрузки для кнопки "Карьерные перспективы"
+
   function goToProfile() {
     const id = get(page).params.id;
     goto(`/profile/${id}`);
@@ -15,22 +17,52 @@
       const res = await fetch(`/api/start_chat/${id}`, { method: 'PUT' });
       if (res.ok) {
         const raw = (await res.text()).trim();
-        const text = raw.replace(/^"(.+)"$/, '$1'); // убрать возможные кавычки
+        const text = raw.replace(/^"(.+)"$/, '$1');
         sessionStorage.setItem(`chatInit:${id}`, text);
       }
-      // если не ok — просто идем дальше без приветствия
     } catch {
-      // игнорируем, все равно переходим в чат
+      // игнорируем
     }
 
     await goto(`/career-chat/${id}`);
   }
 
-  function goToCareerProspects() {
+  // ВАЖНО: новое подключение к бэку для "Карьерные перспективы"
+  async function goToCareerProspects() {
     const id = get(page).params.id;
-    goto(`/career-prospects/${id}`);
+    if (isMatching) return;
+
+    isMatching = true;
+    try {
+      const res = await fetch(`/api/${id}/matching`, { method: 'PUT' });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => '');
+        throw new Error(errText || `HTTP ${res.status}`);
+      }
+
+      // ожидаем массив json-ов: { score, vac_name, position, decision, reasoning_report }
+      const data = await res.json();
+
+      // сохраним только нужное для следующей страницы
+      const normalized = (Array.isArray(data) ? data : []).map((x: any, i: number) => ({
+        id: String(i),                     // локальный id на всякий случай
+        name: String(x.vac_name ?? ''),    // название вакансии
+        score: Math.max(0, Math.min(100, Math.round(Number(x.score) || 0))), // 0..100
+        reason: String(x.reasoning_report ?? '') // текст "почему подходит"
+      }));
+
+      sessionStorage.setItem(`vacancyMatch:${id}`, JSON.stringify(normalized));
+
+      await goto(`/vacancy_list/${id}`);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Неизвестная ошибка';
+      alert(`Не удалось получить карьерные перспективы: ${msg}`);
+    } finally {
+      isMatching = false;
+    }
   }
 </script>
+
 
 
 <svelte:head>
@@ -68,20 +100,30 @@
         </div>
       </button>
 
-      <button class="feature-btn" on:click={goToCareerProspects}>
+      <button
+        class="feature-btn"
+        on:click={goToCareerProspects}
+        disabled={isMatching}
+        aria-busy={isMatching}
+        aria-label="Карьерные перспективы"
+        title="Карьерные перспективы"
+      >
         <div class="feature-content">
           <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
             <path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
           <div class="feature-text">
             <span class="feature-title">Карьерные перспективы</span>
-            <span class="feature-description">Анализ возможностей роста и развития</span>
+            <span class="feature-description">
+              {isMatching ? 'Подбираем…' : 'Анализ возможностей роста и развития'}
+            </span>
           </div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="arrow-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" class="arrow-icon" aria-hidden="true">
             <path d="M5 12h14M12 5l7 7-7 7" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
           </svg>
         </div>
       </button>
+
     </div>
   </div>
 </div>

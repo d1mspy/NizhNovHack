@@ -169,6 +169,7 @@ class MatchingResponse(BaseModel):
     position: str
     decision: str
     reasoning_report: str
+    vac_name: str | None = None
     
 class Message(BaseModel):
     text: str

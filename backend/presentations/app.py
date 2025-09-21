@@ -133,7 +133,14 @@ async def match(user_id: str = Path(...)):
                 is_user=False, 
                 vacancy=res.vacancy.description
             )
-            resps.append(resp)
+            feedback = MatchingResponse(
+                score=resp.score,
+                vac_name=res.vacancy.name,
+                position=profile["current_position"],
+                decision=resp.decision,
+                reasoning_report=resp.reasoning_report
+            )
+            resps.append(feedback)
     
     return resps
 
