@@ -352,7 +352,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
-    min-height: 0; /* важный фикс, чтобы потомки могли скроллиться */
+    min-height: 0;
   }
 
   .pane-header {
@@ -477,11 +477,12 @@
   .search-button:disabled { background: #cbd5e1; cursor: not-allowed; }
 
   .back-btn {
-    position: absolute; top: 30px; left: 6.5%;
+    position: absolute; top: 30px; left: 6.2%;
     padding: 10px 16px; background: white; color: #1DAFF7;
     border: 2px solid #1DAFF7; border-radius: 8px; cursor: pointer;
     font-size: 14px; font-weight: 600; transition: all 0.2s ease;
     display: flex; align-items: center; gap: 8px; z-index: 1000;
+    margin-bottom: 1rem;
   }
   .back-btn:hover { background: #1DAFF7; color: white; }
 
@@ -507,8 +508,9 @@
     padding: 14px;
     gap: 12px;
   }
-  .input-group { display: grid; gap: 6px; }
-  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  
+  .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start;}
+  .input-group { display: flex; flex-direction: column; height: 100%; gap: 6px; }
   .form-label { font-size: 14px; font-weight: 600; color: #374151; }
   .form-input, .form-textarea {
     width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px;
