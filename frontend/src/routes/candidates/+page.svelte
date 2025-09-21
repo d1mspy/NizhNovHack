@@ -2,7 +2,7 @@
   import { goto } from '$app/navigation';
   type Vacancy = { id: string; name: string };
   type Matching = { score: number; position: string; decision?: string; reasoning_report?: string };
-  type Candidate = { id: string; position: string; score: number };
+  type Candidate = { id: string; position: string; score: number; decision?: string; reasoning_report?: string };
 
   let vacancies: Vacancy[] = [];
   let selected: Set<string> = new Set();
@@ -50,7 +50,9 @@
         return arr.map((m, i) => ({
           id: `${vacId}:${i}`,
           position: m.position,
-          score: Math.max(0, Math.min(100, Math.round(m.score)))
+          score: Math.max(0, Math.min(100, Math.round(m.score))),
+          decision: m.decision, 
+          reasoning_report: m.reasoning_report,
         }));
       });
 
@@ -276,6 +278,13 @@
                   </div>
                   <span class="score-value">{c.score}%</span>
                 </div>
+
+                {#if c.decision} 
+                  <div class="recommendation"> 
+                    <span class="rec-label">Рекомендация:</span>
+                    <span class="rec-text">{c.decision}</span>
+                  </div>
+                {/if} 
               </div>
             </div>
           {/each}
@@ -372,7 +381,29 @@
     font-weight: 600;
   }
 
-  /* Либо список, либо форма — оба занимают всё оставшееся пространство */
+  .recommendation {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding-top: 6px;
+  }
+  .rec-label {
+    font-size: 13px;
+    font-weight: 700;
+    color: #374151;
+  }
+  .rec-text {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: #111827;
+    max-width: 100%;
+    word-break: break-word;
+  }
+
   .vacancies-list,
   .manual-card,
   .candidates-list {
