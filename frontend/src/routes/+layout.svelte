@@ -10,3 +10,10 @@
 </svelte:head>
 
 {@render children?.()}
+
+<style>
+	:global(html, body) {
+		height: auto !important;
+		overflow-y: auto !important;
+	}
+</style>
