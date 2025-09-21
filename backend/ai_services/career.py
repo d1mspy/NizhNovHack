@@ -2,6 +2,8 @@ import json
 from typing import List, Dict, Optional
 
 from .utils.career_agent import CareerAgent
+from .utils.dialog_analyzer import DialogAnalyzer, DialogAnalysis
+from schemas.schemas import UserDTO
 from config.config import AI_API_KEY
 
 class AICareerService:
@@ -16,6 +18,7 @@ class AICareerService:
         self.dialog_history: Dict[str, List[Dict]] = {}
         self.max_history_length = max_history_length
         self.career_agent = CareerAgent(api_key=api_key)
+        self.dialog_analyzer = DialogAnalyzer(api_key=api_key)
     
     async def process_message(self, user_id: str, message: str) -> str:
         """
@@ -56,6 +59,40 @@ class AICareerService:
         
         if len(self.dialog_history[user_id]) > self.max_history_length:
             self.dialog_history[user_id] = self.dialog_history[user_id][-self.max_history_length:]
+    
+    async def analyze_dialog(self, user_id: str, user_profile: Dict) -> Dict:
+        history = self.get_history(user_id)
+        
+        analysis = await self.dialog_analyzer.analyze(
+            history, 
+            user_profile['hard_skills'], 
+            user_profile['experience_description'],
+            user_profile['career_expectations']
+        )
+        
+        if analysis:
+            return self._update_profile(user_profile, analysis)
+        
+        return user_profile
+    
+    def _update_profile(self, profile: Dict, analysis: DialogAnalysis) -> Dict:
+        """
+        Обновление профиля пользователя на основе анализа диалога
+        """
+        for skill in analysis.new_hard_skills:
+            if skill not in profile['hard_skills']:
+                profile['hard_skills'].append(skill)
+
+        if analysis.new_experience:
+            if profile['experience_description']:
+                profile['experience_description'] += " " + analysis.new_experience
+            else:
+                profile['experience_description'] = analysis.new_experience
+        
+        if analysis.career_expectations:
+            profile['career_expectations'] = analysis.career_expectations
+        
+        return profile
     
     def _get_history_json(self, user_id: str) -> str:
 
