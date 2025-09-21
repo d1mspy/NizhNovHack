@@ -1,5 +1,3 @@
-
-
 import asyncio
 import json
 import os
@@ -7,11 +5,12 @@ import aiohttp
 from typing import Dict, List, Any, Optional
 from bs4 import BeautifulSoup
 from openai import AsyncOpenAI
+from config.config import AI_API_KEY
 
 
-SCIBOX_API_URL = os.getenv("sk-1NTKTnsPLi-onek5rVQ5dw", "https://llm.t1v.scibox.tech/v1")
-SCIBOX_API_KEY = os.getenv("sk-1NTKTnsPLi-onek5rVQ5dw")
-SCIBOX_MODEL = os.getenv("SCIBOX_MODEL", "Qwen2.5-72B-Instruct-AWQ")
+SCIBOX_API_URL = "https://llm.t1v.scibox.tech/v1"
+SCIBOX_API_KEY = AI_API_KEY
+SCIBOX_MODEL = "Qwen2.5-72B-Instruct-AWQ"
 
 
 COURSES_SEARCH_URLS = {
