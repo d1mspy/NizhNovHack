@@ -51,7 +51,7 @@ class AICareerService:
         
         self.dialog_history[user_id].append({
             "role": role,
-            "message": content
+            "content": content 
         })
         
         if len(self.dialog_history[user_id]) > self.max_history_length:

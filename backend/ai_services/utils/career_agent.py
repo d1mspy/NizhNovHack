@@ -106,8 +106,8 @@ class CareerAgent:
             raise ValueError("JSON файл должен содержать список сообщений")
         
         for msg in data:
-            if 'role' not in msg or 'message' not in msg:
-                raise ValueError("Сообщения должны содержать поля 'role' и 'message'")
+            if 'role' not in msg or 'content' not in msg:
+                raise ValueError("Сообщения должны содержать поля 'role' и 'content'")
         
         return data
     
@@ -124,7 +124,7 @@ class CareerAgent:
         formatted_lines = []
         for msg in messages:
             role = msg['role'].lower()
-            content = msg['message']
+            content = msg['content']
             
             if role == 'user':
                 formatted_lines.append(f"Пользователь: {content}")
