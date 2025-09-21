@@ -42,14 +42,13 @@
     isSearching = true; err = '';
     candidates = []; // очистим правую колонку
     try {
-      // параллельно по всем выбранным вакансиям
       const ids = Array.from(selected);
       const requests = ids.map(async (vacId) => {
         const res = await fetch(`/api/vac/${vacId}/matching`, { method: 'PUT' });
         if (!res.ok) throw new Error(await res.text().catch(() => `HTTP ${res.status}`));
-        const arr = await res.json() as Matching[]; // ожидается массив
+        const arr = await res.json() as Matching[];
         return arr.map((m, i) => ({
-          id: `${vacId}:${i}`,           // локальный уникальный id карточки
+          id: `${vacId}:${i}`,
           position: m.position,
           score: Math.max(0, Math.min(100, Math.round(m.score)))
         }));
@@ -66,7 +65,7 @@
   };
 
   // ─────────────────────────────────────────────────────────────
-  // РУЧНОЙ ВВОД ВАКАНСИИ (новый блок)
+  // РУЧНОЙ ВВОД ВАКАНСИИ (режим «вместо списка»)
   // ─────────────────────────────────────────────────────────────
   let showManual = false;
   let manualName = '';
@@ -96,7 +95,6 @@
       const yearsNum = Number(manualYears) || 0;
       const min_exp_months = Math.max(0, Math.round(yearsNum * 12));
 
-      // разбиваем навыки по запятым, чистим пустые
       const must_have = manualSkills
         .split(',')
         .map(s => s.trim())
@@ -109,7 +107,7 @@
         must_have
       };
 
-      const res = await fetch('/api/vacancy/matching', {
+      const res = await fetch('/api/matching/vacancy', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -122,9 +120,6 @@
         position: String(m.position ?? 'Кандидат'),
         score: Math.max(0, Math.min(100, Math.round(Number(m.score) || 0)))
       }));
-
-      // опционально можно свернуть форму после запроса:
-      // showManual = false;
     } catch (e) {
       manualErr = e instanceof Error ? e.message : 'Неизвестная ошибка';
     } finally {
@@ -150,82 +145,81 @@
     <section class="pane left-pane">
       <div class="pane-header">
         <h2>Вакансии</h2>
-        <span class="badge">{vacancies.length}</span>
+        <div class="left-actions">
+          <button
+            class="manual-toggle"
+            on:click={() => (showManual = !showManual)}
+            aria-expanded={showManual}
+            type="button"
+          >
+            {#if showManual}
+              ← К списку
+            {:else}
+              Добавить вручную
+            {/if}
+          </button>
+          <span class="badge">{vacancies.length}</span>
+        </div>
       </div>
 
-      <!-- НОВОЕ: сворачиваемый блок ручного ввода -->
-      <div class="manual-wrap">
-        <button
-          class="manual-toggle"
-          on:click={() => (showManual = !showManual)}
-          aria-expanded={showManual}
-          type="button"
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
-            <path d="M12 5v14M5 12h14" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-          <span>Добавить вакансию вручную</span>
-          <svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true" style={`transform: rotate(${showManual ? 180 : 0}deg)`}>
-            <path d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </button>
+      <!-- ТУТ ВКЛ/ВЫКЛ КОНТЕНТА: ЛИБО СПИСОК, ЛИБО ФОРМА -->
+      {#if showManual}
+        <div class="manual-card">
+          <div class="input-group">
+            <label class="form-label" for="mn-name">Название вакансии *</label>
+            <input
+              id="mn-name"
+              class="form-input"
+              type="text"
+              bind:value={manualName}
+              placeholder="Например: Data Engineer"
+            />
+          </div>
 
-        {#if showManual}
-          <div class="manual-card">
+          <div class="input-group">
+            <label class="form-label" for="mn-desc">Описание вакансии *</label>
+            <textarea
+              id="mn-desc"
+              class="form-textarea"
+              rows="5"
+              bind:value={manualDesc}
+              placeholder="Кратко опишите задачи и требования"
+            ></textarea>
+          </div>
+
+          <div class="input-row">
             <div class="input-group">
-              <label class="form-label" for="mn-name">Название вакансии *</label>
+              <label class="form-label" for="mn-years">Требуемый опыт (лет) *</label>
               <input
-                id="mn-name"
+                id="mn-years"
                 class="form-input"
-                type="text"
-                bind:value={manualName}
-                placeholder="Например: Data Engineer"
+                type="number"
+                min="0"
+                step="1"
+                bind:value={manualYears}
+                placeholder="Например: 2"
+                inputmode="numeric"
               />
             </div>
 
             <div class="input-group">
-              <label class="form-label" for="mn-desc">Описание вакансии *</label>
-              <textarea
-                id="mn-desc"
-                class="form-textarea"
-                rows="3"
-                bind:value={manualDesc}
-                placeholder="Кратко опишите задачи и требования"
-              ></textarea>
+              <label class="form-label" for="mn-skills">Навыки (через запятую) *</label>
+              <input
+                id="mn-skills"
+                class="form-input"
+                type="text"
+                bind:value={manualSkills}
+                placeholder="Python, SQL, Airflow"
+              />
+              <div class="input-hint">Указывайте навыки через запятую — превратим в список.</div>
             </div>
+          </div>
 
-            <div class="input-row">
-              <div class="input-group">
-                <label class="form-label" for="mn-years">Требуемый опыт (лет) *</label>
-                <input
-                  id="mn-years"
-                  class="form-input"
-                  type="number"
-                  min="0"
-                  step="1"
-                  bind:value={manualYears}
-                  placeholder="Например: 2"
-                  inputmode="numeric"
-                />
-              </div>
+          {#if manualErr}
+            <div class="err-text">Ошибка: {manualErr}</div>
+          {/if}
 
-              <div class="input-group">
-                <label class="form-label" for="mn-skills">Навыки (через запятую) *</label>
-                <input
-                  id="mn-skills"
-                  class="form-input"
-                  type="text"
-                  bind:value={manualSkills}
-                  placeholder="Python, SQL, Airflow"
-                />
-                <div class="input-hint">Указывайте навыки через запятую — превратим в список.</div>
-              </div>
-            </div>
-
-            {#if manualErr}
-              <div class="err-text">Ошибка: {manualErr}</div>
-            {/if}
-
+          <div class="manual-actions">
             <button
               class="manual-search-btn"
               on:click={runManualMatching}
@@ -235,28 +229,27 @@
               {manualLoading ? 'Ищем…' : 'Найти'}
             </button>
           </div>
-        {/if}
-      </div>
-      <!-- /НОВОЕ -->
-
-      <div class="vacancies-list">
-        {#each vacancies as v (v.id)}
-          <button
-            class="vacancy-card {selected.has(v.id) ? 'selected' : ''}"
-            on:click={() => toggleSelect(v.id)}
-            aria-pressed={selected.has(v.id)}
-          >
-            <span class="vacancy-name">{v.name}</span>
-            {#if selected.has(v.id)}
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                <path d="M20 6L9 17l-5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-            {/if}
-          </button>
-        {/each}
-        {#if isLoadingVacancies}<div class="list-hint">Загружаем вакансии…</div>{/if}
-        {#if err && !isLoadingVacancies}<div class="list-error">Ошибка: {err}</div>{/if}
-      </div>
+        </div>
+      {:else}
+        <div class="vacancies-list">
+          {#each vacancies as v (v.id)}
+            <button
+              class="vacancy-card {selected.has(v.id) ? 'selected' : ''}"
+              on:click={() => toggleSelect(v.id)}
+              aria-pressed={selected.has(v.id)}
+            >
+              <span class="vacancy-name">{v.name}</span>
+              {#if selected.has(v.id)}
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path d="M20 6L9 17l-5-5" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              {/if}
+            </button>
+          {/each}
+          {#if isLoadingVacancies}<div class="list-hint">Загружаем вакансии…</div>{/if}
+          {#if err && !isLoadingVacancies}<div class="list-error">Ошибка: {err}</div>{/if}
+        </div>
+      {/if}
     </section>
 
     <!-- Правая колонка -->
@@ -345,6 +338,7 @@
     display: flex;
     flex-direction: column;
     height: 100%;
+    min-height: 0; /* важный фикс, чтобы потомки могли скроллиться */
   }
 
   .pane-header {
@@ -363,6 +357,12 @@
     color: #1f2937;
   }
 
+  .left-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
   .badge {
     background: #e0f2fe;
     color: #1DAFF7;
@@ -372,14 +372,17 @@
     font-weight: 600;
   }
 
+  /* Либо список, либо форма — оба занимают всё оставшееся пространство */
   .vacancies-list,
+  .manual-card,
   .candidates-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
     flex: 1;
     overflow-y: auto;
     padding-right: 5px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
   }
 
   .vacancy-card {
@@ -446,43 +449,48 @@
   }
   .back-btn:hover { background: #1DAFF7; color: white; }
 
-  /* ───────────── Новые стили для ручной формы ───────────── */
-  .manual-wrap { margin-bottom: 12px; }
+  /* Кнопка-переключатель режима в шапке левой колонки */
   .manual-toggle {
-    width: 100%;
-    display: flex; align-items: center; justify-content: space-between;
-    gap: 10px; padding: 12px 14px; background: #f8fafc;
-    border: 2px solid #e2e8f0; border-radius: 10px; cursor: pointer;
-    transition: border-color 0.2s ease; text-align: left;
+    padding: 8px 12px;
+    background: #f8fafc;
+    border: 2px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #1f2937;
+    cursor: pointer;
+    transition: border-color .15s ease, background .15s ease;
   }
-  .manual-toggle:hover { border-color: #1DAFF7; }
-  .manual-toggle span { font-weight: 600; color: #1f2937; }
-  .manual-toggle .chev { transition: transform .15s ease; }
+  .manual-toggle:hover { border-color: #1DAFF7; background: #f0f9ff; }
 
+  /* Стили формы */
   .manual-card {
-    margin-top: 12px; background: #ffffff; border: 2px solid #e2e8f0; border-radius: 12px;
-    padding: 14px; display: grid; gap: 12px;
+    background: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px;
+    gap: 12px;
   }
   .input-group { display: grid; gap: 6px; }
   .input-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
   .form-label { font-size: 14px; font-weight: 600; color: #374151; }
   .form-input, .form-textarea {
     width: 100%; padding: 12px; border: 2px solid #e2e8f0; border-radius: 8px; font-size: 14px;
-    transition: border-color .15s ease; font-family: inherit; box-sizing: border-box;
-    background: #fff;
+    transition: border-color .15s ease; font-family: inherit; box-sizing: border-box; background: #fff;
   }
   .form-input:focus, .form-textarea:focus { outline: none; border-color: #1DAFF7; }
-  .form-textarea { resize: vertical; min-height: 90px; }
+  .form-textarea { resize: vertical; min-height: 120px; }
   .input-hint { font-size: 12px; color: #6b7280; }
 
+  .manual-actions { display: flex; justify-content: flex-end; }
   .manual-search-btn {
-    justify-self: end;
     padding: 10px 18px; background: #1DAFF7; color: white; border: none; border-radius: 8px;
     font-size: 14px; font-weight: 700; cursor: pointer; transition: background-color .15s ease;
   }
   .manual-search-btn:hover:not(:disabled) { background: #0d8dcd; }
   .manual-search-btn:disabled { background: #cbd5e1; cursor: not-allowed; }
   .err-text { color: #b91c1c; font-size: 13px; }
+
   .list-hint { color: #64748b; font-size: 13px; padding: 4px 2px; }
   .list-error { color: #b91c1c; font-size: 13px; padding: 4px 2px; }
 

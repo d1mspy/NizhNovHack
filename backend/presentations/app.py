@@ -166,7 +166,7 @@ async def match(vac_id: str = Path(...)):
     
     return resps
 
-@app.put("/vacancy/matching")
+@app.put("/matching/vacancy")
 async def match_new_vac(vac: VacancyDTO):
     results = await matching_service.new_vacancy_match(vac)
     resps = []
